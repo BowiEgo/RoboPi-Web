@@ -8,8 +8,12 @@ const { version } = JSON.parse(readFileSync(join(configDir, "package.json"), "ut
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: configDir,
-  // 地基阶段暂不需要外部包；后续接入 pi SDK 时在此追加：
-  // serverExternalPackages: ["@earendil-works/pi-coding-agent", "cordis"],
+  serverExternalPackages: [
+    "@earendil-works/pi-coding-agent",
+    "@earendil-works/pi-agent-core",
+    "@earendil-works/pi-ai",
+    "@earendil-works/pi-tui",
+  ],
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
