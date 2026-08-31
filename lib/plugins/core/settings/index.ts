@@ -1,4 +1,4 @@
-import { Context, Service } from "cordis";
+import { Context, Schema, Service } from "cordis";
 import { SettingsManager } from "@earendil-works/pi-coding-agent";
 
 /**
@@ -22,6 +22,12 @@ export interface SettingsConfig {
   /** agent 目录，默认 pi SDK 的 getAgentDir() */
   agentDir?: string;
 }
+
+/** 配置 Schema：插件加载时自动校验 + 归一化（Cordis 原生机制） */
+export const Config = Schema.object({
+  cwd: Schema.string().description("工作目录（决定项目设置与信任状态）"),
+  agentDir: Schema.string().description("agent 目录（默认 pi SDK getAgentDir）"),
+});
 
 class SettingsService extends Service {
   readonly manager: SettingsManager;

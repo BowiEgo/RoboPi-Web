@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Context, Service } from "cordis";
+import { Context, Schema, Service } from "cordis";
 
 /**
  * @core/kv-store —— RoboPi 自有键值存储（演示/实验用）。
@@ -21,6 +21,11 @@ export interface KvStoreConfig {
   /** 存储文件路径，默认 <cwd>/.robopi/settings.json */
   file?: string;
 }
+
+/** 配置 Schema：插件加载时自动校验（Cordis 原生机制） */
+export const Config = Schema.object({
+  file: Schema.string().description("存储文件路径（默认 .robopi/settings.json）"),
+});
 
 class KvStoreService extends Service {
   private data: Record<string, unknown> = {};

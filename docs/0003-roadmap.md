@@ -12,17 +12,20 @@
 - **M4 前端**：components 33 + hooks 9 + app 资源 + public 全量迁移，品牌化 RoboPi Web
 - **M5 平台化**：全部 lib 模块（102）与 API 路由（45+）迁移完成
 
-质量门：**553 项测试全绿**（lib 287 + 前端 266）· tsc ✅ · 差分 API 20+ 路径全一致
+质量门：**553 项测试全绿**（lib 287 + 前端 266）· tsc ✅ · 差分 API 20+ 路径全一致 · 插件端到端验证 ✅
 
-## 遗留与后续（非阻塞）
+## 遗留清单状态（2026-08-31 更新）
 
-- [ ] 引入 Schema 配置校验，设置项可视化（P1 遗留）
-- [ ] PluginHost：浏览器端动态加载插件 JS（manifest + entry，@web/ui-host 已具备 slot 注册表底座）
-- [ ] slots 扩展：sidebar / tabbar / settings / message-card
-- [ ] 热更新：插件目录 watch + 前端刷新（不依赖 Turbopack HMR）
-- [ ] 自有插件落地（后端服务 / agent 工具 / UI 组件）
-- [ ] 可选：iframe 沙箱 + postMessage 白名单桥（第三方插件市场）
-- [ ] 可选：独立进程部署（Cordis 拆出，WebSocket 传输）
-- [ ] 定期 rebase 上游 agegr/pi-web，冲突收敛到 pi-bridge
-- [ ] pin @earendil-works/pi-coding-agent 版本，升级走灰度
-- [ ] 关注 cordis v4 稳定发布，评估迁移
+- [x] **Schema 配置校验**：@core/settings、@core/kv-store 已用 Cordis Schema（Config 导出），字段级校验自动生效
+- [x] **UI 插件系统（三层）**：位置级 slot（PluginHost + 5 个挂载点）/ 组件级覆盖（ComponentRegistry，ModelSelector 已接入）/ 内容级消息渲染器（MessageView 分发）—— 见 ADR-0002 §8
+- [x] **热更新**：插件目录 5s 轮询 + mtime 版本号破缓存
+- [x] **自有插件落地**：examples/plugins/demo-plugin（三层演示，纯 JS 无构建），已安装生效
+- [x] **上游同步方案**：scripts/sync-check.mjs（A/B/C 分类巡检 + --apply 覆盖 + 依赖对比）+ 手册 ADR-0005
+- [x] **pin SDK 版本**：@earendil-works/* 精确锁版，sync-check 自动对比上游
+
+## 架构演进（评估结论，暂缓）
+
+- **iframe 沙箱 + postMessage 白名单桥**：本地信任模型已够用；开放第三方插件市场时再引入（插件能力受限、开发体验下降，仅用于市场插件）
+- **独立进程部署（Cordis 拆出）**：单机本地场景无必要；多用户服务化时再拆（WebSocket 传输，lib/agent-event-connection 已备）
+- **cordis v4 迁移**：v4 仍 RC；核心 API（Context/Service/plugin/inject/on/emit）兼容面大，等正式版 + Koishi 生态跟进后评估
+- **设置项可视化（Schema 驱动表单）**：Schema 元数据已就绪，后续按需生成通用设置表单

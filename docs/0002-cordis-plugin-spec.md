@@ -117,17 +117,32 @@ ctx.on("robopi/greeting", (caller) => ctx.logger.info("greeting from %s", caller
 
 ## 7. 配置
 
-插件配置经 `apply(ctx, config)` 第二参数传入，默认值在插件内合并：
+插件配置经 `apply(ctx, config)` 第二参数传入，默认值在插件内合并。配置校验用 Cordis 原生 `Schema`（`import { Schema } from "cordis"`），插件导出 `Config` 后加载时自动校验+归一化：
 
 ```ts
-export function apply(ctx: Context, config: SettingsConfig = {}) {
-  // config.file ?? 默认路径
-}
+export const Config = Schema.object({
+  cwd: Schema.string().description("工作目录"),
+  agentDir: Schema.string().description("agent 目录"),
+});
 ```
 
-后续引入 `Schema`（cordis 自带 `Schema` / `z` 导出）做配置校验与设置页生成。
+已有示例：@core/settings、@core/kv-store。Schema 元数据可驱动后续的设置项可视化（自动生成设置表单）。
 
-## 8. @web/ui-host 插槽协议（地基版）
+## 8. UI 插件系统（三层，已实现）
+
+插件放 `~/.pi/agent/pi-web/plugins/<name>/`（manifest.json + index.js），5 秒内热更新生效。示例见 `examples/plugins/demo-plugin`。
+
+| 层 | API | 说明 | 状态 |
+|---|---|---|---|
+| 位置级 | `window.robopi.registerSlot(name, renderer)` | navrail/sidebar-bottom/tabbar-right/chat-toolbar/settings-section | ✅ |
+| 组件级 | `window.robopi.registerComponent(name, factory)` | 覆盖 12 个开放组件（ModelSelector 已接入） | ✅ |
+| 内容级 | `window.robopi.registerMessageRenderer(customType, renderer)` | 自定义消息卡片（MessageView 分发） | ✅ |
+
+插件可用全局：`window.robopi`（注册 API）、`window.React`（React 19，无需构建工具）。宿主 API 桥：`getStatus()/listSessions()/openSession()`。
+
+### 8.1 服务端插槽（@web/ui-host，数据级）
+
+服务端注册表（NavRail 数据源），与浏览器端三层体系互补：
 
 ```ts
 export type WebUiSlot = "navrail" | "sidebar" | "tabbar";
@@ -142,7 +157,6 @@ ctx.webui.getSlot(slot);        // 按 order 升序
 ```
 
 - 前端经 `GET /api/robopi/status` 拉取 `services.webui.slots`，渲染 NavRail 等组件。
-- 后续扩展：组件级 slot（下发可渲染描述）、点击回调、事件推送（SSE）。
 
 ## 9. API 路由薄壳约定
 
