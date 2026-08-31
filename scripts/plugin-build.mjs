@@ -41,13 +41,26 @@ function resolvePluginDir(nameOrPath) {
 }
 
 function listPluginDirs() {
-  try {
-    return readdirSync(DEV_DIR, { withFileTypes: true })
-      .filter((d) => d.isDirectory() && d.name !== ".git")
-      .map((d) => join(DEV_DIR, d.name));
-  } catch {
-    return [];
-  }
+  // 递归发现（monorepo 嵌套）：任意层级含 src/index.tsx 的目录即插件
+  const found = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.name === ".git" || e.name === "node_modules" || e.name === "dist") continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) {
+        if (existsSync(join(full, "src", "index.tsx"))) found.push(full);
+        else walk(full);
+      }
+    }
+  };
+  walk(DEV_DIR);
+  return found;
 }
 
 const targets =
@@ -88,8 +101,16 @@ for (const pluginDir of targets) {
   }
 }
 
-if (mode === "watch" && contexts.length > 0) {
-  console.log(`\n共 ${contexts.length} 个插件在 watch（Ctrl+C 停止）`);
+if (mode === "watch") {
+  if (contexts.length === 0) {
+    console.log("（plugins-dev 下未发现 TSX 插件，watch 保持待命…）");
+    // 保持进程存活，避免 concurrently -k 误杀 web；Ctrl+C 退出
+    const idle = setInterval(() => {}, 60_000);
+    process.on("SIGINT", () => { clearInterval(idle); process.exit(0); });
+    process.on("SIGTERM", () => { clearInterval(idle); process.exit(0); });
+  } else {
+    console.log(`\n共 ${contexts.length} 个插件在 watch（Ctrl+C 停止）`);
+  }
   const shutdown = () => {
     for (const ctx of contexts) ctx.dispose();
     process.exit(0);
