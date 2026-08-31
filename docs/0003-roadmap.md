@@ -15,8 +15,12 @@
 
 > 迁移执行计划：见 ADR-0004 的 M2（管理路由六步）与 M5（平台化收尾）
 
-- [ ] 从 pi-web 迁移：settings/models/auth/files/worktrees/skills/subagents/i18n/packages
-- [ ] 每个模块 = 一个 Cordis 插件 + 薄壳路由（保持原 API 签名）
+- [x] M2a：@core/settings（pi SettingsManager 包装）+ @core/models + 路由 home/models-config 四件套 + 差分 API 工具（scripts/diff-api.mjs，5 路径全一致）
+- [ ] M2b：@core/auth → auth/* 路由
+- [ ] M2c：@core/files → files/cwd/file-index
+- [ ] M2d：@core/worktrees → worktrees/git
+- [ ] M2e：@core/skills + @core/packages → skills/plugins 路由
+- [ ] M2f：@core/project → sessions 只读等
 - [ ] 引入 Schema 配置校验，设置项可视化
 - [ ] 迁移 pi-web 的 .test.mjs 测试，补服务级测试（ctx.mock 模式）
 

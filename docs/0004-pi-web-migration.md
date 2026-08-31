@@ -62,14 +62,14 @@ RoboPi-web 与 pi-web 共享 `~/.pi/agent/`（sessions/settings/models/auth/exte
 
 按业务域拆成小阶段，每步 = 「Cordis 插件 + 薄壳路由 + 测试」：
 
-| 步 | 插件 | 迁移路由 | 依赖的 SDK 面 |
-|---|---|---|---|
-| M2a | @core/settings | settings、models、models-config、default-cwd | SettingsManager、ModelRegistry |
-| M2b | @core/auth | auth/* | AuthStorage |
-| M2c | @core/files | files、cwd、file-index、home | fs 权限体系 |
-| M2d | @core/worktrees | worktrees、git | git 操作 |
-| M2e | @core/skills、@core/packages | skills、skills/install、plugins | DefaultResourceLoader、DefaultPackageManager |
-| M2f | @core/project | sessions 只读、project-trust、app-update、push、tools、subagents/settings | SessionManager 读取面 |
+| 步 | 插件 | 迁移路由 | 依赖的 SDK 面 | 状态 |
+|---|---|---|---|---|
+| M2a | @core/settings、@core/models | models-config、models-config/catalog、models-config/discover、models-config/test、home | SettingsManager、ModelRuntime | ✅ 已完成 |
+| M2b | @core/auth | auth/* | AuthStorage | ⬜ |
+| M2c | @core/files | files、cwd、file-index、home | fs 权限体系 | ⬜ |
+| M2d | @core/worktrees | worktrees、git | git 操作 | ⬜ |
+| M2e | @core/skills、@core/packages | skills、skills/install、plugins | DefaultResourceLoader、DefaultPackageManager | ⬜ |
+| M2f | @core/project | sessions 只读、project-trust、app-update、push、tools、subagents/settings | SessionManager 读取面 | ⬜ |
 
 - **前置决策**：`@core/settings` 的存储路径从 `.robopi/settings.json` **切换到 `~/.pi/agent/settings.json`**（与 pi 生态一致），地基的 settings 插件升级为读 pi 配置。
 - **验收**：① 对应测试全绿；② **差分 API 测试**（`scripts/diff-api.mjs`：同一请求同时打 pi-web 与 RoboPi-web，对比 JSON，允许白名单字段差异）——这是 M2 的核心验收工具。

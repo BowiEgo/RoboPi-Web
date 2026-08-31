@@ -163,9 +163,39 @@ export async function GET() {
 - 测试文件：`lib/**/*.test.mjs`（node:test + jiti 加载 TS，需 `tsconfigPaths: true` 解析 `@/` 别名）。
 - 命令：`npm test`。
 - 模式：`createRoot()` 起真实根实例 → 断言服务行为 → `ctx.stop()` 清理。
-- 注意：测试与 dev server 是独立进程，互不干扰；settings 测试会写入 `.robopi/settings.json`。
+- 注意：测试与 dev server 是独立进程，互不干扰；kv-store 测试会写入 `.robopi/settings.json`。
 
 ## 11. 自有插件开发步骤（模板）
+
+1. `mkdir lib/plugins/<scope>/<name>/`，新建 `index.ts`（按 §3–§6 模式编写）；
+2. 在 `lib/plugins/index.ts` 加入清单（按依赖方向排序）；
+3. 需要 UI 时经 `@web/ui-host` 注册 slot 项；
+4. `npm run typecheck && npm test`；
+5. dev server 下直接访问页面验证（根实例缓存于 globalThis，HMR 不重建）。
+
+## 12. 内置插件清单（现状）
+
+| 插件 | 服务 | 职责 | 状态 |
+|---|---|---|---|
+| @web/ui-host | `ctx.webui` | UI 插槽注册表（navrail/sidebar/tabbar） | ✅ P0 |
+| @core/settings | `ctx.settings` | pi SettingsManager 包装（~/.pi/agent/settings.json） | ✅ M2a |
+| @core/models | `ctx.models` | models.json 读写 + 模型连通性测试 | ✅ M2a |
+| @core/kv-store | `ctx.kvStore` | RoboPi 自有 KV（.robopi/settings.json，演示用） | ✅ P0 |
+| @core/hello | `ctx.hello` | 示例服务（事件 + 依赖声明演示） | ✅ P0 |
+
+## 13. 差分 API 测试
+
+`node scripts/diff-api.mjs` —— 对比 pi-web(30141) 与 RoboPi(30142) 的 GET 响应：
+
+```bash
+node scripts/diff-api.mjs                          # 默认路径集
+node scripts/diff-api.mjs --path /api/home         # 追加路径（可重复）
+node scripts/diff-api.mjs --verbose                # 打印完整差异
+```
+
+- 忽略字段白名单（IGNORE_FIELDS）剔除易变值；
+- 双方 5xx 视为等价（上游网络问题）；
+- 退出码 0 = 全部一致（可接入 CI）。
 
 1. `mkdir lib/plugins/<scope>/<name>/`，新建 `index.ts`（按 §3–§6 模式编写）；
 2. 在 `lib/plugins/index.ts` 加入清单（按依赖方向排序）；

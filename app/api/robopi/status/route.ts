@@ -33,8 +33,14 @@ export async function GET() {
       hello: {
         calls: ctx.hello.stats.calls,
       },
+      kvStore: {
+        keys: Object.keys(ctx.kvStore.getAll()),
+      },
       settings: {
-        keys: Object.keys(ctx.settings.getAll()),
+        defaultModel: ctx.settings.getDefaultModel(),
+      },
+      models: {
+        configKeys: Object.keys(ctx.models.readConfig()),
       },
       webui: {
         slots: ctx.webui.getSnapshot(),

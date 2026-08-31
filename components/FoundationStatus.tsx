@@ -12,7 +12,9 @@ interface StatusResponse {
   };
   services: {
     hello: { calls: number };
-    settings: { keys: string[] };
+    kvStore: { keys: string[] };
+    settings: { defaultModel: { provider?: string; modelId?: string } | null };
+    models: { configKeys: string[] };
     webui: { slots: Record<string, NavItem[]> };
   };
 }
@@ -152,8 +154,8 @@ export function FoundationStatus() {
             </section>
 
             {/* Settings 服务演示 */}
-            <section className="rp-card" id="demo-settings">
-              <h2>⚙️ @core/settings 持久化演示（.robopi/settings.json）</h2>
+            <section className="rp-card" id="demo-kvstore">
+              <h2>🗄️ @core/kv-store 持久化演示（.robopi/settings.json）</h2>
               <div className="rp-row">
                 <input
                   className="rp-input"
@@ -181,6 +183,23 @@ export function FoundationStatus() {
               )}
             </section>
 
+            {/* pi 设置状态 */}
+            <section className="rp-card" id="demo-settings">
+              <h2>⚙️ @core/settings（pi 数据层）</h2>
+              <p>
+                读写 <span className="rp-mono">~/.pi/agent/settings.json</span>（经 pi SDK SettingsManager）。
+                默认模型：
+                {status.services.settings.defaultModel
+                  ? `${status.services.settings.defaultModel.provider ?? "?"} / ${status.services.settings.defaultModel.modelId}`
+                  : "未设置"}
+              </p>
+              <p>
+                @core/models 已接入 <span className="rp-mono">models.json</span>
+                （键：{status.services.models.configKeys.join(", ") || "（空）"}），
+                路由 <span className="rp-mono">/api/models-config</span> 已迁移为薄壳。
+              </p>
+            </section>
+
             {/* 架构说明 */}
             <section className="rp-card">
               <h2>🧭 本页验证的链路</h2>
@@ -198,7 +217,12 @@ export function FoundationStatus() {
               <p>
                 <span className="rp-mono">settings 表单</span> ←{" "}
                 <span className="rp-mono">/api/robopi/settings</span> ←{" "}
-                <span className="rp-mono">ctx.settings.set()</span>（JSON 原子持久化）
+                <span className="rp-mono">ctx.kvStore.set()</span>（RoboPi 自有 KV，JSON 原子持久化）
+              </p>
+              <p>
+                <span className="rp-mono">pi 数据层</span> ←{" "}
+                <span className="rp-mono">ctx.settings.manager</span>（pi SettingsManager，
+                ~/.pi/agent/settings.json）· <span className="rp-mono">ctx.models</span>（models.json 读写 + 连通性测试）
               </p>
             </section>
           </>

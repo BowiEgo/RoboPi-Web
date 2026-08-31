@@ -1,12 +1,11 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { Context, Service } from "cordis";
+import { SettingsManager } from "@earendil-works/pi-coding-agent";
 
 /**
- * @core/settings —— 全局设置存储服务。
+ * @core/settings —— pi 设置数据层（ADR-0004 M2a 决策 1）。
  *
- * 提供简单的键值持久化（JSON 文件，原子写入），
- * 后续从 pi-web 迁移 settings.json / models.json 读写时以此为基底。
+ * 包装 pi SDK 的 SettingsManager，读写 ~/.pi/agent/settings.json（及项目
+ * .pi/settings.json），与 pi 生态完全一致。所有需要配置的服务经此访问。
  */
 
 export const name = "@core/settings";
@@ -18,61 +17,42 @@ declare module "cordis" {
 }
 
 export interface SettingsConfig {
-  /** 设置文件路径，默认 <cwd>/.robopi/settings.json */
-  file?: string;
+  /** 工作目录（决定项目设置与信任状态），默认 process.cwd() */
+  cwd?: string;
+  /** agent 目录，默认 pi SDK 的 getAgentDir() */
+  agentDir?: string;
 }
 
 class SettingsService extends Service {
-  private data: Record<string, unknown> = {};
-  private readonly file: string;
-  private writeChain: Promise<void> = Promise.resolve();
+  readonly manager: SettingsManager;
 
   constructor(ctx: Context, config: SettingsConfig = {}) {
     super(ctx, "settings", true);
-    this.file = config.file ?? join(process.cwd(), ".robopi", "settings.json");
-    this.load();
+    this.manager = SettingsManager.create(config.cwd ?? process.cwd(), config.agentDir);
   }
 
-  private load(): void {
-    try {
-      const raw = readFileSync(this.file, "utf8");
-      this.data = JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      this.data = {};
-    }
+  getDefaultModel(): { provider?: string; modelId?: string } | null {
+    const provider = this.manager.getDefaultProvider();
+    const modelId = this.manager.getDefaultModel();
+    return provider || modelId ? { provider, modelId } : null;
   }
 
-  get<T = unknown>(key: string, fallback?: T): T | undefined {
-    return key in this.data ? (this.data[key] as T) : fallback;
+  getGlobalSettings() {
+    return this.manager.getGlobalSettings();
   }
 
-  getAll(): Record<string, unknown> {
-    return { ...this.data };
-  }
-
-  async set(key: string, value: unknown): Promise<void> {
-    this.data[key] = value;
-    // 串行化写入，避免并发路由请求竞态
-    this.writeChain = this.writeChain.then(() => this.persist());
-    return this.writeChain;
-  }
-
-  private persist(): void {
-    mkdirSync(dirname(this.file), { recursive: true });
-    const tmp = `${this.file}.tmp`;
-    writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf8");
-    renameSync(tmp, this.file);
+  getProjectSettings() {
+    return this.manager.getProjectSettings();
   }
 }
 
 export function apply(ctx: Context, config: SettingsConfig = {}) {
   ctx.plugin(SettingsService, config);
 
-  // 依赖声明：向导航栏注册入口
   ctx.inject(["webui"], () => {
     ctx.webui.register("navrail", {
       id: "settings",
-      label: "设置存储",
+      label: "pi 设置",
       icon: "⚙️",
       href: "#demo-settings",
       order: 30,
