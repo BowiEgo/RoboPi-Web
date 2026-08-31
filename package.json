@@ -13,7 +13,11 @@
     "start": "next start -H 127.0.0.1 -p 30142",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\""
+    "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\"",
+    "plugin:build": "node scripts/plugin-build.mjs build",
+    "plugin:watch": "node scripts/plugin-build.mjs watch",
+    "plugin:build-all": "node scripts/plugin-build.mjs build --all",
+    "plugin:watch-all": "node scripts/plugin-build.mjs watch --all"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.84.3",

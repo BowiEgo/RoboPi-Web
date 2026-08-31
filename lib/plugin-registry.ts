@@ -153,11 +153,12 @@ export function repoNameFromUrl(url: string): string {
   return safe || "plugin";
 }
 
-/** 安装：git clone 到插件目录并记录元数据 */
+/** 安装：git clone 到插件目录并记录元数据。dir 为仓库内子目录（monorepo） */
 export async function installPlugin(
   source: string,
   ref?: string,
   name?: string,
+  dir?: string,
 ): Promise<PluginListEntry> {
   const url = source.replace(/^git:/, "");
   const dirName = name ?? repoNameFromUrl(url);
@@ -178,17 +179,22 @@ export async function installPlugin(
   try {
     await execFileAsync("git", cloneArgs, { timeout: 120_000 });
 
-    manifest = parseManifest(readFileSync(join(tmpDir, "manifest.json"), "utf8"));
+    // monorepo：manifest 在仓库子目录 dir 下（校验防路径穿越）
+    const manifestDir = dir ? resolve(tmpDir, dir) : tmpDir;
+    if (!manifestDir.startsWith(resolve(tmpDir))) {
+      throw new Error(`invalid dir: ${dir}`);
+    }
+    manifest = parseManifest(readFileSync(join(manifestDir, "manifest.json"), "utf8"));
     if (!/^[\w.-]+$/.test(manifest.name)) throw new Error(`invalid manifest.name: ${manifest.name}`);
     const finalDir = join(PLUGINS_ROOT, manifest.name);
     if (existsSync(finalDir)) {
       throw new Error(`plugin already exists: ${manifest.name}`);
     }
-    renameSync(tmpDir, finalDir);
+    renameSync(manifestDir, finalDir);
 
     writeFileSync(
       join(finalDir, GIT_SOURCE_FILE),
-      JSON.stringify({ url, ref, installedAt: new Date().toISOString() }, null, 2),
+      JSON.stringify({ url, ref, dir, installedAt: new Date().toISOString() }, null, 2),
       "utf8",
     );
   } finally {
@@ -241,6 +247,8 @@ export interface MarketPluginEntry {
   source: string;
   /** 可选 ref（branch/tag） */
   ref?: string;
+  /** monorepo 子目录（仓库内 manifest 所在路径，缺省为仓库根） */
+  dir?: string;
 }
 
 /** 市场清单文件（用户可编辑）；ROBOPI_PLUGIN_MARKET_URL 可指向远程 JSON */

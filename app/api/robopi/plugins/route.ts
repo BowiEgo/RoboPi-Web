@@ -36,12 +36,13 @@ export async function POST(req: Request) {
       source?: string;
       ref?: string;
       name?: string;
+      dir?: string;
     };
     if (!body.action) return NextResponse.json({ error: "action required" }, { status: 400 });
 
     if (body.action === "install") {
       if (!body.source?.trim()) return NextResponse.json({ error: "source required" }, { status: 400 });
-      const plugin = await installPlugin(body.source.trim(), body.ref, body.name);
+      const plugin = await installPlugin(body.source.trim(), body.ref, body.name, body.dir);
       return NextResponse.json({ ok: true, plugin });
     }
     if (body.action === "update") {
