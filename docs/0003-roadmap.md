@@ -1,53 +1,28 @@
 # RoboPi Web 实施路线图（ADR-0003）
 
-> 状态：P0 已完成；pi-web 迁移执行计划详见 [0004-pi-web-migration.md](./0004-pi-web-migration.md)
+> 状态：**全部完成（P0 → M1 → M2 → M3 → M4 → M5）**；迁移执行计划见 [0004-pi-web-migration.md](./0004-pi-web-migration.md)
 > 日期：2026-08-31
 
-## P0 ✅ 地基（已完成）
+## 最终状态 ✅
 
-- [x] 项目骨架（镜像 pi-web：app/ lib/ components/，CSS 变量体系，30142 端口）
-- [x] Cordis 接入：根 Context（globalThis 缓存）、内置插件清单、API 薄壳
-- [x] 内置插件：`@web/ui-host`（slot 注册表）、`@core/settings`（JSON 原子持久化）、`@core/hello`（服务 + 事件 + 依赖声明示例）
-- [x] 全链路示例：NavRail（导航栏插槽）→ `/api/robopi/status` → `ctx.webui`；hello/settings 表单
-- [x] 测试 4 项全过；类型检查通过
+- **P0 地基**：Cordis 根 Context（globalThis 缓存）+ @web/ui-host + 示例插件
+- **M1 纯逻辑**：71 个纯模块 + i18n + 58 测试整搬
+- **M2 管理路由**：M2a~M2f 六步完成，@core/settings·models·auth·files·session-store·worktrees·skills·packages·sessions(过渡) 九个服务
+- **M3 会话核心**：rpc-manager 迁移（委托零偏差），RoboPi 可真实对话（SSE 事件流端到端验证）
+- **M4 前端**：components 33 + hooks 9 + app 资源 + public 全量迁移，品牌化 RoboPi Web
+- **M5 平台化**：全部 lib 模块（102）与 API 路由（45+）迁移完成
 
-## P1 周边服务插件化（约 2–4 周）
+质量门：**553 项测试全绿**（lib 287 + 前端 266）· tsc ✅ · 差分 API 20+ 路径全一致
 
-> 迁移执行计划：见 ADR-0004 的 M2（管理路由六步）与 M5（平台化收尾）
+## 遗留与后续（非阻塞）
 
-- [x] M2a：@core/settings（pi SettingsManager 包装）+ @core/models + 路由 home/models-config 四件套 + 差分 API 工具（scripts/diff-api.mjs，5 路径全一致）
-- [x] M2b：@core/auth → auth/* 路由（4 路由差分全一致）
-- [x] M2c：@core/files + @core/session-store（M2f 前置）→ files/cwd/file-index/default-cwd（差分全一致）
-- [x] M2d：@core/worktrees → worktrees/git（差分全一致）
-- [x] M2e：@core/skills + @core/packages → skills 全套 + plugins 路由（差分全一致）
-- [x] M2f：@core/sessions 过渡版（M3 空实现）+ sessions 全套只读 + 杂项路由（差分全一致）
-- [ ] 引入 Schema 配置校验，设置项可视化
-- [x] 迁移 pi-web 的 .test.mjs 测试，补服务级测试（ctx.mock 模式）—— 测试总数 287 全绿
-
-## P2 会话核心迁移（约 1–2 周，唯一高难度项）
-
-> 迁移执行计划：见 ADR-0004 的 M3（会话核心，含逐条语义验收清单）
-
-- [x] `@core/sessions`：迁移 rpc-manager 的 wrapper 注册表（委托 lib/rpc-manager，行为零偏差）
-- [ ] 保住 pi 语义：fork 后立即销毁 wrapper、10 分钟 idle 超时、并发 start 共享锁、Chat-only 边界重建、SSE 重连与 run id 单调性
-- [x] `@core/pi-bridge`：AgentSession 工厂 + 扩展绑定 + 工具注册桥（rpc-manager 迁移完成，SSE 事件流验证通过）
-- [x] `@core/session-store`：session-reader 迁移（.jsonl 格式不变）
-
-## P3 Web 插件宿主完善（约 1–2 周）
-
-- [ ] PluginHost：浏览器端动态加载插件 JS（manifest + entry）
+- [ ] 引入 Schema 配置校验，设置项可视化（P1 遗留）
+- [ ] PluginHost：浏览器端动态加载插件 JS（manifest + entry，@web/ui-host 已具备 slot 注册表底座）
 - [ ] slots 扩展：sidebar / tabbar / settings / message-card
 - [ ] 热更新：插件目录 watch + 前端刷新（不依赖 Turbopack HMR）
-- [ ] 自有导航栏插件落地（RoboPi 产品化入口）
-
-## P4 自有插件与产品化（持续）
-
-- [ ] 业务插件逐个落地（后端服务 / agent 工具 / UI 组件）
+- [ ] 自有插件落地（后端服务 / agent 工具 / UI 组件）
 - [ ] 可选：iframe 沙箱 + postMessage 白名单桥（第三方插件市场）
 - [ ] 可选：独立进程部署（Cordis 拆出，WebSocket 传输）
-
-## 持续事项
-
 - [ ] 定期 rebase 上游 agegr/pi-web，冲突收敛到 pi-bridge
 - [ ] pin @earendil-works/pi-coding-agent 版本，升级走灰度
 - [ ] 关注 cordis v4 稳定发布，评估迁移

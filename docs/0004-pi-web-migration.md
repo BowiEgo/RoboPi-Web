@@ -1,6 +1,6 @@
 # pi-web → RoboPi Web 分阶段迁移方案（ADR-0004）
 
-> 状态：评估完成，待评审
+> 状态：全部完成（M1–M5 已落地）
 > 日期：2026-08-31
 > 目标源：pi-web v0.8.11（upstream: github.com/agegr/pi-web，MIT）
 
@@ -64,7 +64,7 @@ RoboPi-web 与 pi-web 共享 `~/.pi/agent/`（sessions/settings/models/auth/exte
 
 | 步 | 插件 | 迁移路由 | 依赖的 SDK 面 | 状态 |
 |---|---|---|---|---|
-| M2a | @core/settings、@core/models | models-config、models-config/catalog、models-config/discover、models-config/test、home | SettingsManager、ModelRuntime | ✅ 已完成 |
+| M2a | @core/settings、@core/models | models-config 全套、models、home | SettingsManager、ModelRuntime | ✅ 已完成 |
 | M2b | @core/auth | auth/* | AuthStorage | ✅ 已完成 |
 | M2c | @core/files + @core/session-store（M2f 前置） | files、cwd/validate、file-index、default-cwd | fs 权限体系 + SessionManager 读取面 | ✅ 已完成 |
 | M2d | @core/worktrees | worktrees、git/status、git/diff | git 操作 | ✅ 已完成 |

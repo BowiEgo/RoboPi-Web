@@ -13,13 +13,14 @@
     "start": "next start -H 127.0.0.1 -p 30142",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test \"lib/**/*.test.mjs\""
+    "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\""
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.84.3",
     "@earendil-works/pi-ai": "^0.84.3",
     "@earendil-works/pi-coding-agent": "^0.84.3",
     "@earendil-works/pi-tui": "^0.84.3",
+    "ansi_up": "^6.0.6",
     "cordis": "^3.18.1",
     "js-yaml": "^5.4.1",
     "mammoth": "^1.12.2",
@@ -27,6 +28,7 @@
     "proper-lockfile": "^4.1.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-syntax-highlighter": "^15.6.6",
     "undici": "^8.10.0",
     "web-push": "^3.6.7"
   },
@@ -37,10 +39,12 @@
     "@types/proper-lockfile": "^4.1.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "jiti": "^2.7.0",
+    "mermaid": "^11.16.1",
     "postcss": "^8.5.26",
     "react-markdown": "^10.1.0",
     "rehype-katex": "^7.0.1",

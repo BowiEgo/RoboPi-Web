@@ -187,6 +187,7 @@ export async function GET() {
 | @core/skills | `ctx.skills` | 技能列表/开关/更新/安装/搜索 | ✅ M2e |
 | @core/packages | `ctx.packages` | pi 包管理（install/remove/update/disable/enable） | ✅ M2e |
 | @core/sessions | `ctx.sessions` | 会话运行时（M3 完整：委托 rpc-manager，创建/命令/SSE） | ✅ M3 |
+| @core/packages | `ctx.packages` | pi 包管理 | ✅ M2e |
 | @core/hello | `ctx.hello` | 示例服务（事件 + 依赖声明演示） | ✅ P0 |
 
 ## 13. 差分 API 测试
