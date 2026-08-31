@@ -6,8 +6,32 @@
 
 ```
 plugins-dev/
-  workspace-stats/   # 示例插件（工作区统计）
+  workspace-stats/   # 纯 JS 插件示例（零构建，改文件即热更）
+  tsx-workspace/     # TSX 插件示例（esbuild watch 构建 + 类型安全）
 ```
+
+## 两种开发模式
+
+| 模式 | 适用 | 热更新链条 |
+|---|---|---|
+| **纯 JS**（workspace-stats） | 简单插件 | 改 index.js → 浏览器 5 秒热更 |
+| **TSX**（tsx-workspace） | 复杂插件、要类型安全 | 改 src/*.tsx → `npm run dev`（esbuild --watch=forever 自动编译）→ 浏览器 5 秒热更 |
+
+### TSX 模式要点
+
+```bash
+cd plugins-dev/tsx-workspace
+npm install          # 安装 esbuild
+npm run dev          # watch 编译（注意：后台运行时用 --watch=forever，见 package.json）
+npm run build        # 产物 dist/index.js（发布时提交）
+# 类型检查（复用主项目 tsc）：
+cd ../.. && node_modules/.bin/tsc -p plugins-dev/tsx-workspace/tsconfig.json
+```
+
+- JSX 编译为 `window.React.createElement`（tsconfig 的 jsxFactory），**不 bundle React**（避免双实例）
+- `plugin-env.d.ts` 提供 `window.robopi`/`window.React`/全局 JSX 类型（React 19 移除了全局 JSX，已从 React.JSX 重导出）
+- `import type * as React from "react"` 只做类型用，运行时从宿主取
+- 发布：`dist/` 提交进仓库，市场安装无需构建
 
 ## 开发流程
 
