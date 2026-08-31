@@ -26,3 +26,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 插件本地开发目录（各自独立 git 仓库，不入主仓库）
+/plugins-dev/*
+!/plugins-dev/README.md
