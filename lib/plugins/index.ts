@@ -1,0 +1,13 @@
+import type { BuiltinPluginEntry } from "@/lib/cordis/types";
+import * as hello from "./core/hello";
+import * as settings from "./core/settings";
+import * as webui from "./core/webui";
+
+/**
+ * 内置插件清单 —— 加载顺序即依赖方向（webui 最先，供后续插件注入）。
+ */
+export const builtinPlugins: BuiltinPluginEntry[] = [
+  { name: webui.name, apply: webui.apply },
+  { name: settings.name, apply: settings.apply },
+  { name: hello.name, apply: hello.apply },
+];
