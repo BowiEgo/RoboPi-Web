@@ -23,6 +23,7 @@ interface MarketPlugin {
   description?: string;
   source: string;
   ref?: string;
+  dir?: string;
   installed: boolean;
   installedVersion?: string;
 }
@@ -79,8 +80,8 @@ export function RoboPiPluginsPanel() {
     }
   };
 
-  const install = (source: string, ref?: string) =>
-    run(`install:${source}`, "install", { source, ref });
+  const install = (source: string, ref?: string, dir?: string) =>
+    run(`install:${source}`, "install", { source, ref, dir });
 
   const style = {
     section: { display: "flex", flexDirection: "column" as const, gap: 12, padding: "0 4px" },
@@ -151,7 +152,7 @@ export function RoboPiPluginsPanel() {
             <div style={style.meta}>{p.description ?? p.source}</div>
           </div>
           {!p.installed && (
-            <button style={style.primaryButton} disabled={isBusy(`install:${p.source}`)} onClick={() => install(p.source, p.ref)}>
+            <button style={style.primaryButton} disabled={isBusy(`install:${p.source}`)} onClick={() => install(p.source, p.ref, p.dir)}>
               {isBusy(`install:${p.source}`) ? "安装中…" : "安装"}
             </button>
           )}
