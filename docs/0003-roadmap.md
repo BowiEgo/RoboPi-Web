@@ -22,6 +22,7 @@
 - [x] **自有插件落地**：examples/plugins/demo-plugin（三层演示，纯 JS 无构建），已安装生效
 - [x] **上游同步方案**：scripts/sync-check.mjs（A/B/C 分类巡检 + --apply 覆盖 + 依赖对比）+ 手册 ADR-0005
 - [x] **pin SDK 版本**：@earendil-works/* 精确锁版，sync-check 自动对比上游
+- [ ] **插件 i18n 化（宿主 i18n 桥）**：`robopi.registerMessages({en, zh-CN, zh-TW})` + `api.t(key, params)` / `api.getLocale()` / `api.onLocaleChange(cb)`；`useI18n` 的 setLocale 派发 `robopi:locale` 事件桥接；插件键约定 `插件名.xxx` 前缀；存量插件（workspace/workspace-stats）文案迁移到语言包；市场描述/README 属内容层另行约定。方案评估见会话记录，预计工作量：宿主 0.5 天 + 示例迁移 0.5 天（2026-08-31 评估，待排期）
 
 ## 架构演进（评估结论，暂缓）
 
