@@ -42,6 +42,14 @@ class WebUiService extends Service {
     for (const slot of ALL_SLOTS) {
       this.items.set(slot, new Map());
     }
+    // 宿主自身注册一个入口，作为 navrail 的默认项（构造时注册，避免插件作用域内自引用）
+    this.register("navrail", {
+      id: "overview",
+      label: "总览",
+      icon: "🏠",
+      href: "#overview",
+      order: 10,
+    });
   }
 
   /** 向插槽注册一项；返回注销函数（供插件 dispose 时调用） */
@@ -72,13 +80,4 @@ class WebUiService extends Service {
 
 export function apply(ctx: Context) {
   ctx.plugin(WebUiService);
-
-  // 宿主自身注册一个入口，作为 navrail 的默认项
-  ctx.webui.register("navrail", {
-    id: "overview",
-    label: "总览",
-    icon: "🏠",
-    href: "#overview",
-    order: 10,
-  });
 }

@@ -235,6 +235,6 @@ export class SkillError extends Error {
 
 export function apply(ctx: Context) {
   ctx.plugin(SkillsService);
-  // 显式声明依赖：toggle 授权经 ctx.files
-  ctx.inject(["files"], () => {});
 }
+
+export const inject = ["files"];

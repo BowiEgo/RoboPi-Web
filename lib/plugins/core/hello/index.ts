@@ -50,14 +50,14 @@ export function apply(ctx: Context) {
     ctx.logger.info("[demo] robopi/greeting from %s", caller);
   });
 
-  // 依赖声明：@web/ui-host 可用后，向导航栏注册入口
-  ctx.inject(["webui"], () => {
-    ctx.webui.register("navrail", {
-      id: "hello",
-      label: "Hello 演示",
-      icon: "👋",
-      href: "#demo-hello",
-      order: 20,
-    });
+  // 依赖声明（插件级 inject）：向导航栏注册入口
+  ctx.webui.register("navrail", {
+    id: "hello",
+    label: "Hello 演示",
+    icon: "👋",
+    href: "#demo-hello",
+    order: 20,
   });
 }
+
+export const inject = ["webui"];

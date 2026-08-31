@@ -49,13 +49,14 @@ class SettingsService extends Service {
 export function apply(ctx: Context, config: SettingsConfig = {}) {
   ctx.plugin(SettingsService, config);
 
-  ctx.inject(["webui"], () => {
-    ctx.webui.register("navrail", {
-      id: "settings",
-      label: "pi 设置",
-      icon: "⚙️",
-      href: "#demo-settings",
-      order: 30,
-    });
+  // 依赖声明（插件级 inject）：@web/ui-host 可用后注册导航栏入口
+  ctx.webui.register("navrail", {
+    id: "settings",
+    label: "pi 设置",
+    icon: "⚙️",
+    href: "#demo-settings",
+    order: 30,
   });
 }
+
+export const inject = ["webui"];

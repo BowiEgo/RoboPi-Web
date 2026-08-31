@@ -68,13 +68,14 @@ class KvStoreService extends Service {
 export function apply(ctx: Context, config: KvStoreConfig = {}) {
   ctx.plugin(KvStoreService, config);
 
-  ctx.inject(["webui"], () => {
-    ctx.webui.register("navrail", {
-      id: "kv-store",
-      label: "KV 存储",
-      icon: "🗄️",
-      href: "#demo-kvstore",
-      order: 40,
-    });
+  // 依赖声明（插件级 inject）：向导航栏注册入口
+  ctx.webui.register("navrail", {
+    id: "kv-store",
+    label: "KV 存储",
+    icon: "🗄️",
+    href: "#demo-kvstore",
+    order: 40,
   });
 }
+
+export const inject = ["webui"];

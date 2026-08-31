@@ -15,7 +15,14 @@ const GLOBAL_KEY = "__robopiRoot";
 export async function createRoot(): Promise<Context> {
   const ctx = new Context();
   for (const entry of builtinPlugins) {
-    ctx.plugin({ name: entry.name, apply: entry.apply }, entry.config);
+    ctx.plugin(
+      {
+        name: entry.name,
+        apply: entry.apply,
+        ...(entry.inject ? { inject: entry.inject } : {}),
+      },
+      entry.config,
+    );
   }
   await ctx.start();
   return ctx;

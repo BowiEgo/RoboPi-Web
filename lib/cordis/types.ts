@@ -2,7 +2,7 @@ import type { Context } from "cordis";
 
 /**
  * 内置插件条目 —— 由 lib/cordis/root.ts 加载。
- * 采用 Cordis Plugin.Object 形态（{ name, apply }），便于日志与注册表展示。
+ * 采用 Cordis Plugin.Object 形态（{ name, apply, inject }），便于日志与注册表展示。
  */
 export interface BuiltinPluginEntry {
   /** 插件名，遵循 `@scope/name` 约定 */
@@ -13,6 +13,8 @@ export interface BuiltinPluginEntry {
   /** 插件配置（可选） */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config?: any;
+  /** 插件级依赖声明（服务方法内访问 ctx.<service> 时抑制未注册警告） */
+  inject?: string[];
 }
 
 /** 插件运行时状态（ScopeStatus 数值 → 可读字符串） */

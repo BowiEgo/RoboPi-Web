@@ -99,6 +99,6 @@ class WorktreesService extends Service {
 
 export function apply(ctx: Context) {
   ctx.plugin(WorktreesService);
-  // 显式声明依赖：git 路由经 ctx.files 做文件级授权
-  ctx.inject(["files"], () => {});
 }
+
+export const inject = ["files"];
