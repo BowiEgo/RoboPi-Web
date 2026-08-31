@@ -11,6 +11,7 @@ import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ExtensionStatusBar } from "./ExtensionStatusBar";
 import { AnsiText } from "./AnsiText";
+import { PluginSlot } from "./PluginSlot";
 import { useI18n } from "@/hooks/useI18n";
 import { useAgentSession, type AgentPhase, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
@@ -718,6 +719,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
               </div>
             </div>
             {chatInputElement}
+            <PluginSlot name="chat-toolbar" />
             <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
           </div>
         </div>

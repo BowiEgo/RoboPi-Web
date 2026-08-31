@@ -1,0 +1,7 @@
+{
+  "name": "demo-plugin",
+  "version": "1.0.0",
+  "description": "三层插件化演示：位置级 slot + 组件覆盖 + 消息渲染器",
+  "entry": "index.js",
+  "slots": ["sidebar-bottom", "tabbar-right"]
+}

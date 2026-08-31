@@ -10,6 +10,7 @@ import {
   type SettingsSection,
 } from "@/lib/settings-navigation";
 import { ModelsConfig } from "./ModelsConfig";
+import { PluginSlot } from "./PluginSlot";
 import { SkillsConfig } from "./SkillsConfig";
 import { PluginsConfig } from "./PluginsConfig";
 import { ConfigSwitch } from "./SettingsUi";
@@ -220,6 +221,7 @@ export function SettingsPanel({ cwd, sessionId, initialSection, onClose, onSessi
       className="settings-section-host"
     >
       {content}
+      {id === "general" && <PluginSlot name="settings-section" />}
     </div>
   ) : null;
 

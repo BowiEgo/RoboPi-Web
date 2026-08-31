@@ -5,6 +5,8 @@ import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
 import { copyText } from "@/lib/clipboard";
 import { useI18n } from "@/hooks/useI18n";
+import { useMessageRenderer } from "@/lib/plugin-client";
+import type { PluginApi } from "@/lib/plugin-api";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
 import { getAssistantErrorMessage, isEmptyThinkingBlock } from "@/lib/message-display";
 import { parseUnifiedPatch, type SplitDiffCell } from "@/lib/patch";
@@ -260,10 +262,13 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     return null;
   }
   if (message.role === "custom") {
-    if ((message as CustomMessage).customType === "compaction") {
-      return <CompactionMessageView message={message as CustomMessage} />;
-    }
-    return <CustomMessageView message={message as CustomMessage} cwd={cwd} onOpenFile={onOpenFile} />;
+    return (
+      <CustomMessageHost
+        message={message as CustomMessage}
+        cwd={cwd}
+        onOpenFile={onOpenFile}
+      />
+    );
   }
   if (message.role === "bashExecution") {
     return <BashExecutionView message={message as BashExecutionMessage} sessionId={sessionId} />;
@@ -1372,6 +1377,38 @@ function PairedResult({ text, images, isEmpty, isError }: {
       )}
     </div>
   );
+}
+
+/** 自定义消息渲染器可用的宿主 API 桥 */
+const messagePluginApi: PluginApi = {
+  getStatus: () => fetch("/api/robopi/status", { cache: "no-store" }).then((r) => r.json()),
+  listSessions: () => fetch("/api/sessions", { cache: "no-store" }).then((r) => r.json()),
+  openSession: (sessionId: string) => {
+    window.location.assign(`/?session=${encodeURIComponent(sessionId)}`);
+  },
+};
+
+/**
+ * 自定义消息宿主：compaction 专用渲染 → 插件注册渲染器 → 默认 CustomMessageView
+ */
+function CustomMessageHost({
+  message,
+  cwd,
+  onOpenFile,
+}: {
+  message: CustomMessage;
+  cwd?: string;
+  onOpenFile?: (filePath: string) => void;
+}) {
+  if (message.customType === "compaction") {
+    return <CompactionMessageView message={message} />;
+  }
+  // 第 3 层插件化：插件注册的自定义消息渲染器优先
+  const renderer = useMessageRenderer(message.customType);
+  if (renderer) {
+    return <>{renderer(message, messagePluginApi)}</>;
+  }
+  return <CustomMessageView message={message} cwd={cwd} onOpenFile={onOpenFile} />;
 }
 
 function CompactionMessageView({ message }: { message: CustomMessage }) {

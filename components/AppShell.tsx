@@ -11,6 +11,7 @@ import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
+import { PluginSlot } from "./PluginSlot";
 import { SystemPromptPanel } from "./SystemPromptPanel";
 import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
 import { AgentSessionPanel } from "./AgentSessionPanel";
@@ -1013,6 +1014,7 @@ export function AppShell() {
         onRunningSessionIdsChange={handleRunningSessionIdsChange}
         onSessionsChange={handleSessionsChange}
       />
+      <PluginSlot name="sidebar-bottom" />
       <div style={{ padding: "8px", flexShrink: 0, display: "flex", justifyContent: "space-between", gap: 4 }}>
         {([
           ["models", translate("common.models")],
@@ -2372,6 +2374,7 @@ export function AppShell() {
               onCloseTab={handleCloseFileTab}
             />
           </div>
+          <PluginSlot name="tabbar-right" />
           <button
             type="button"
             onClick={() => setRightPanelOpen(false)}

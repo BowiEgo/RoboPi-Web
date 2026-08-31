@@ -26,6 +26,7 @@ import { FolderIcon, getFileIcon } from "./FileIcons";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
 import type { ToolPreset } from "@/lib/tool-presets";
+import { ComponentRegistry } from "./ComponentRegistry";
 import { ModelSelector, type ModelSelectorOption } from "./ModelSelector";
 
 export { filterModelOptions } from "./ModelSelector";
@@ -2100,13 +2101,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             </button>
             {/* Model selector - visible always, disabled while the session or switch is busy */}
             {(modelOptions.length > 0 || model || modelError) && onModelChange && (
-              <ModelSelector
-                options={modelOptions}
-                value={model}
-                onChange={onModelChange}
-                disabled={isStreaming}
-                busy={modelSwitching}
-                isAutoSelection={isAutoModelSelection}
+              <ComponentRegistry
+                component="ModelSelector"
+                fallback={
+                  <ModelSelector
+                    options={modelOptions}
+                    value={model}
+                    onChange={onModelChange}
+                    disabled={isStreaming}
+                    busy={modelSwitching}
+                    isAutoSelection={isAutoModelSelection}
+                  />
+                }
               />
             )}
           </div>
