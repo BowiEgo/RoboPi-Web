@@ -132,6 +132,23 @@ export const Config = Schema.object({
 
 插件放 `~/.pi/agent/pi-web/plugins/<name>/`（manifest.json + index.js），5 秒内热更新生效。示例见 `examples/plugins/demo-plugin`。
 
+### 8.0 安装方式（两种）
+
+| 方式 | 命令 | 说明 |
+|---|---|---|
+| 本地文件夹 | 直接复制到 plugins/ 目录 | 不可被 remove（保护） |
+| git 源安装 | `node scripts/plugin.mjs install <url> [--ref <branch>] [--name <dir>]` | clone 到目录 + 写 .git-source.json 元数据 |
+
+```bash
+node scripts/plugin.mjs list                      # 列出（含 git 源信息）
+node scripts/plugin.mjs install git:https://github.com/user/repo
+node scripts/plugin.mjs install git:github.com/user/repo --ref v1.0.0
+node scripts/plugin.mjs update <name>             # git fetch + reset（浅克隆语义）
+node scripts/plugin.mjs remove <name>             # 仅 git 安装的插件
+```
+
+URL 格式（与 pi packages 语义一致）：`git:` 前缀可选；支持 https://、ssh://、git@、本地路径。安装时 clone 到临时目录 → 校验 manifest → 重命名为 manifest.name；插件身份 = manifest.name（目录名恒等于它）。服务端也有等价的 `POST /api/robopi/plugins`（action: install/update/remove）。
+
 | 层 | API | 说明 | 状态 |
 |---|---|---|---|
 | 位置级 | `window.robopi.registerSlot(name, renderer)` | navrail/sidebar-bottom/tabbar-right/chat-toolbar/settings-section | ✅ |

@@ -83,6 +83,8 @@ export interface PluginListEntry {
   entryUrl: string;
   /** 入口文件 mtime（热更新版本号） */
   versionStamp: number;
+  /** git 源信息（本地插件为 null） */
+  source?: { url: string; ref?: string };
 }
 
 declare global {

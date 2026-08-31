@@ -1,14 +1,19 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import type { PluginListEntry, PluginManifest } from "@/lib/plugin-api";
 
+const execFileAsync = promisify(execFile);
+
 /**
- * 服务端插件目录扫描。
+ * 服务端插件目录扫描 + git 源安装管理。
  *
- * 扫描 ~/.pi/agent/pi-web/plugins 下每个子目录的 manifest.json：
- * - 校验 manifest 结构（name/version/entry）
- * - entry 文件必须存在，返回经 API 代理的 URL 与 mtime（热更新版本号）
+ * 插件来源两种：
+ * - 本地：直接放 ~/.pi/agent/pi-web/plugins/<name>/（目录无 .git-source.json）
+ * - git 安装：installPlugin() clone 到目录并写 .git-source.json，update 走 git pull，
+ *   remove 仅对 git 安装的插件生效（保护本地文件夹）
  */
 
 const PLUGINS_ROOT = join(homedir(), ".pi", "agent", "pi-web", "plugins");
@@ -86,3 +91,111 @@ export function readPluginEntry(name: string): { content: string; versionStamp: 
 }
 
 export { PLUGINS_ROOT };
+
+// ============================================================================
+// git 源安装管理
+// ============================================================================
+
+/** git 安装元数据文件（目录内存在 = git 安装，允许 remove/update） */
+const GIT_SOURCE_FILE = ".git-source.json";
+
+interface GitSourceMeta {
+  url: string;
+  ref?: string;
+  installedAt: string;
+}
+
+function readGitSource(dir: string): GitSourceMeta | null {
+  try {
+    return JSON.parse(readFileSync(join(dir, GIT_SOURCE_FILE), "utf8")) as GitSourceMeta;
+  } catch {
+    return null;
+  }
+}
+
+/** 从 git URL/路径推断仓库名（防路径穿越：白名单字符） */
+export function repoNameFromUrl(url: string): string {
+  const cleaned = url.replace(/^git:/, "")
+    .replace(/^git@[^:]+:/, "")
+    .replace(/^[a-z]+:\/\//, "")
+    .replace(/\.git$/, "");
+  const base = cleaned.split("/").filter(Boolean).pop() ?? "plugin";
+  const safe = base.replace(/[^\w.-]/g, "-");
+  return safe || "plugin";
+}
+
+/** 安装：git clone 到插件目录并记录元数据 */
+export async function installPlugin(
+  source: string,
+  ref?: string,
+  name?: string,
+): Promise<PluginListEntry> {
+  const url = source.replace(/^git:/, "");
+  const dirName = name ?? repoNameFromUrl(url);
+  if (!/^[\w.-]+$/.test(dirName)) throw new Error(`invalid plugin name: ${dirName}`);
+  const target = join(PLUGINS_ROOT, dirName);
+  if (!target.startsWith(PLUGINS_ROOT)) throw new Error("invalid plugin name");
+
+  const { mkdirSync, renameSync, rmSync } = await import("node:fs");
+  mkdirSync(PLUGINS_ROOT, { recursive: true });
+
+  // 先 clone 到临时目录，校验 manifest 后重命名为 manifest.name
+  // （目录名 = 插件身份，保证 update/remove 按 name 定位一致）
+  const tmpDir = join(PLUGINS_ROOT, `.install-${dirName}-${Date.now()}`);
+  const cloneArgs = ["clone", "--depth", "1"];
+  if (ref) cloneArgs.push("--branch", ref);
+  cloneArgs.push(url, tmpDir);
+  let manifest: PluginManifest;
+  try {
+    await execFileAsync("git", cloneArgs, { timeout: 120_000 });
+
+    manifest = parseManifest(readFileSync(join(tmpDir, "manifest.json"), "utf8"));
+    if (!/^[\w.-]+$/.test(manifest.name)) throw new Error(`invalid manifest.name: ${manifest.name}`);
+    const finalDir = join(PLUGINS_ROOT, manifest.name);
+    if (existsSync(finalDir)) {
+      throw new Error(`plugin already exists: ${manifest.name}`);
+    }
+    renameSync(tmpDir, finalDir);
+
+    writeFileSync(
+      join(finalDir, GIT_SOURCE_FILE),
+      JSON.stringify({ url, ref, installedAt: new Date().toISOString() }, null, 2),
+      "utf8",
+    );
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+
+  const entry = listPlugins().find((p) => p.name === manifest.name);
+  if (!entry) throw new Error(`plugin installed but manifest invalid: ${dirName}`);
+  return entry;
+}
+
+/** 更新：git 安装的插件 git pull（保持浅克隆语义：fetch + reset） */
+export async function updatePlugin(name: string): Promise<PluginListEntry | null> {
+  const dir = join(PLUGINS_ROOT, name);
+  const meta = readGitSource(dir);
+  if (!meta) throw new Error(`not a git-installed plugin: ${name}`);
+
+  await execFileAsync("git", ["fetch", "origin"], { cwd: dir, timeout: 120_000 });
+  const resetTarget = meta.ref ? `origin/${meta.ref}` : "origin/HEAD";
+  await execFileAsync("git", ["reset", "--hard", resetTarget], { cwd: dir, timeout: 120_000 });
+
+  return listPlugins().find((p) => p.name === name) ?? null;
+}
+
+/** 移除：仅 git 安装的插件（本地文件夹保护） */
+export async function removePlugin(name: string): Promise<boolean> {
+  const dir = join(PLUGINS_ROOT, name);
+  const meta = readGitSource(dir);
+  if (!meta) throw new Error(`refusing to remove local plugin (not git-installed): ${name}`);
+  const { rmSync } = await import("node:fs");
+  rmSync(dir, { recursive: true, force: true });
+  return true;
+}
+
+/** 插件列表补充 git 源信息 */
+export function getPluginSource(name: string): { source: string; ref?: string } | null {
+  const meta = readGitSource(join(PLUGINS_ROOT, name));
+  return meta ? { source: meta.url, ref: meta.ref } : null;
+}
