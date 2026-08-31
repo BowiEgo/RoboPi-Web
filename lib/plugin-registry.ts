@@ -394,3 +394,50 @@ export async function listMarketWithStatus(): Promise<
 
 export { MARKET_FILE };
 
+/** 读取插件 README.md（dev 源优先，与 entry 同源遍历；无 README 返回 null） */
+export function readPluginReadme(name: string): string | null {
+  const roots: Array<{ root: string; recursive: boolean }> = [];
+  if (isDevMode()) roots.push({ root: DEV_PLUGINS_ROOT, recursive: true });
+  roots.push({ root: PLUGINS_ROOT, recursive: false });
+
+  for (const { root, recursive } of roots) {
+    const dirs: string[] = [];
+    const walk = (base: string) => {
+      let entries;
+      try {
+        entries = readdirSync(base, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const d of entries) {
+        if (d.name === ".git" || d.name === "node_modules" || d.name === "dist") continue;
+        const full = join(base, d.name);
+        const isDir = d.isDirectory()
+          || (d.isSymbolicLink() && (() => {
+            try {
+              return statSync(full).isDirectory();
+            } catch {
+              return false;
+            }
+          })());
+        if (!isDir) continue;
+        if (recursive && !existsSync(join(full, "manifest.json"))) walk(full);
+        else dirs.push(full);
+      }
+    };
+    walk(root);
+
+    for (const dir of dirs) {
+      try {
+        const manifest = parseManifest(readFileSync(join(dir, "manifest.json"), "utf8"));
+        if (manifest.name !== name) continue;
+        const readmePath = join(dir, "README.md");
+        return existsSync(readmePath) ? readFileSync(readmePath, "utf8") : null;
+      } catch {
+        continue;
+      }
+    }
+  }
+  return null;
+}
+
