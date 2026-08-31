@@ -138,6 +138,7 @@ export const Config = Schema.object({
 |---|---|---|
 | 本地文件夹 | 直接复制到 plugins/ 目录 | 不可被 remove（保护） |
 | git 源安装 | `node scripts/plugin.mjs install <url> [--ref <branch>] [--name <dir>]` | clone 到目录 + 写 .git-source.json 元数据 |
+| 插件市场 | Settings 设置 → RoboPi 插件 → 一键安装 | 读 ~/.pi/agent/pi-web/market.json（或 ROBOPI_PLUGIN_MARKET_URL 远程清单） |
 
 ```bash
 node scripts/plugin.mjs list                      # 列出（含 git 源信息）

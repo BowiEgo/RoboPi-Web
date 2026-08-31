@@ -4,7 +4,6 @@ import { homedir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { PluginListEntry, PluginManifest } from "@/lib/plugin-api";
-
 const execFileAsync = promisify(execFile);
 
 /**
@@ -199,3 +198,64 @@ export function getPluginSource(name: string): { source: string; ref?: string } 
   const meta = readGitSource(join(PLUGINS_ROOT, name));
   return meta ? { source: meta.url, ref: meta.ref } : null;
 }
+
+// ============================================================================
+// 插件市场
+// ============================================================================
+
+/** 市场清单条目 */
+export interface MarketPluginEntry {
+  name: string;
+  description?: string;
+  /** git 源（支持 git: 前缀） */
+  source: string;
+  /** 可选 ref（branch/tag） */
+  ref?: string;
+}
+
+/** 市场清单文件（用户可编辑）；ROBOPI_PLUGIN_MARKET_URL 可指向远程 JSON */
+const MARKET_FILE = join(homedir(), ".pi", "agent", "pi-web", "market.json");
+
+function parseMarket(data: unknown): MarketPluginEntry[] {
+  if (!isRecord(data) || !Array.isArray(data.plugins)) return [];
+  return data.plugins.filter((p): p is MarketPluginEntry => {
+    if (!isRecord(p)) return false;
+    return typeof p.name === "string" && typeof p.source === "string" && p.source.trim() !== "";
+  });
+}
+
+/** 读取市场清单（本地文件优先；环境变量 URL 为远程源，缓存 10 分钟） */
+export async function listMarketPlugins(): Promise<MarketPluginEntry[]> {
+  const remote = process.env.ROBOPI_PLUGIN_MARKET_URL;
+  if (!remote) {
+    try {
+      return parseMarket(JSON.parse(readFileSync(MARKET_FILE, "utf8")));
+    } catch {
+      return []; // 无市场文件 = 空市场
+    }
+  }
+  try {
+    const res = await fetch(remote, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) throw new Error(`market HTTP ${res.status}`);
+    return parseMarket(await res.json());
+  } catch (error) {
+    console.warn("[plugin-market] fetch failed:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
+/** 市场条目 + 已安装状态 */
+export async function listMarketWithStatus(): Promise<
+  Array<MarketPluginEntry & { installed: boolean; installedVersion?: string }>
+> {
+  const [market, installed] = await Promise.all([listMarketPlugins(), Promise.resolve(listPlugins())]);
+  const installedByName = new Map(installed.map((p) => [p.name, p.version]));
+  return market.map((entry) => ({
+    ...entry,
+    installed: installedByName.has(entry.name),
+    installedVersion: installedByName.get(entry.name),
+  }));
+}
+
+export { MARKET_FILE };
+

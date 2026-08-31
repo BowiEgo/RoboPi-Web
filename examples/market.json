@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "description": "三层插件化演示：位置级 slot + 组件覆盖 + 消息渲染器",
+      "source": "/Users/boboboost/Documents/Codes/RoboPi-web/examples/plugins/demo-plugin"
+    }
+  ]
+}
