@@ -47,11 +47,8 @@ class WorktreesService extends Service {
 
   /** 授权检查：cwd 必须在允许根内（词法 + 符号链接解析）。返回错误消息或 null。 */
   async checkCwdAllowed(cwd: string): Promise<string | null> {
-    const allowedRoots = await getAllowedFileRoots();
-    if (!isFilePathAllowed(cwd, allowedRoots) || !isExistingFilePathAllowed(cwd, allowedRoots)) {
-      return "Access denied";
-    }
-    return null;
+    // 统一实现位于 @core/files（唯一安全边界）
+    return this.ctx.files.checkCwdAllowed(cwd);
   }
 
   /** 列出项目 worktrees（含当前 worktree 推断；worktree 路径自动加入允许根） */

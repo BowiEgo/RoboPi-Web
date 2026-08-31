@@ -4,8 +4,10 @@ import * as files from "./core/files";
 import * as hello from "./core/hello";
 import * as kvStore from "./core/kv-store";
 import * as models from "./core/models";
+import * as packages from "./core/packages";
 import * as sessionStore from "./core/session-store";
 import * as settings from "./core/settings";
+import * as skills from "./core/skills";
 import * as webui from "./core/webui";
 import * as worktrees from "./core/worktrees";
 
@@ -20,6 +22,8 @@ export const builtinPlugins: BuiltinPluginEntry[] = [
   { name: sessionStore.name, apply: sessionStore.apply },
   { name: files.name, apply: files.apply },
   { name: worktrees.name, apply: worktrees.apply },
+  { name: skills.name, apply: skills.apply },
+  { name: packages.name, apply: packages.apply },
   { name: kvStore.name, apply: kvStore.apply },
   { name: hello.name, apply: hello.apply },
 ];

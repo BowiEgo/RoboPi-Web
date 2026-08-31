@@ -68,7 +68,7 @@ RoboPi-web 与 pi-web 共享 `~/.pi/agent/`（sessions/settings/models/auth/exte
 | M2b | @core/auth | auth/* | AuthStorage | ✅ 已完成 |
 | M2c | @core/files + @core/session-store（M2f 前置） | files、cwd/validate、file-index、default-cwd | fs 权限体系 + SessionManager 读取面 | ✅ 已完成 |
 | M2d | @core/worktrees | worktrees、git/status、git/diff | git 操作 | ✅ 已完成 |
-| M2e | @core/skills、@core/packages | skills、skills/install、plugins | DefaultResourceLoader、DefaultPackageManager | ⬜ |
+| M2e | @core/skills + @core/packages | skills、skills/check/update/install/search、plugins | DefaultResourceLoader、DefaultPackageManager | ✅ 已完成 |
 | M2f | @core/project | sessions 只读、project-trust、app-update、push、tools、subagents/settings | SessionManager 读取面 | ⬜ |
 
 - **前置决策**：`@core/settings` 的存储路径从 `.robopi/settings.json` **切换到 `~/.pi/agent/settings.json`**（与 pi 生态一致），地基的 settings 插件升级为读 pi 配置。

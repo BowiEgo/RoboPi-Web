@@ -47,6 +47,15 @@ class FilesService extends Service {
     allowFileRootImpl(root);
   }
 
+  /** 授权检查：cwd 必须在允许根内（词法 + 符号链接解析）。返回错误消息或 null。 */
+  async checkCwdAllowed(cwd: string): Promise<string | null> {
+    const roots = await this.getAllowedFileRoots();
+    if (!isFilePathAllowedImpl(cwd, roots) || !isExistingFilePathAllowedImpl(cwd, roots)) {
+      return "Access denied";
+    }
+    return null;
+  }
+
   isWindowsAbsolutePath(target: string): boolean {
     return isWindowsAbsolutePath(target);
   }

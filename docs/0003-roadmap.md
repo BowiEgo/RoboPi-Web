@@ -19,7 +19,7 @@
 - [x] M2b：@core/auth → auth/* 路由（4 路由差分全一致）
 - [x] M2c：@core/files + @core/session-store（M2f 前置）→ files/cwd/file-index/default-cwd（差分全一致）
 - [x] M2d：@core/worktrees → worktrees/git（差分全一致）
-- [ ] M2e：@core/skills + @core/packages → skills/plugins 路由
+- [x] M2e：@core/skills + @core/packages → skills 全套 + plugins 路由（差分全一致）
 - [ ] M2f：@core/project → sessions 只读等
 - [ ] 引入 Schema 配置校验，设置项可视化
 - [ ] 迁移 pi-web 的 .test.mjs 测试，补服务级测试（ctx.mock 模式）
