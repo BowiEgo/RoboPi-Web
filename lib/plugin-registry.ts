@@ -224,9 +224,9 @@ export async function removePlugin(name: string): Promise<boolean> {
 }
 
 /** 插件列表补充 git 源信息 */
-export function getPluginSource(name: string): { source: string; ref?: string } | null {
+export function getPluginSource(name: string): { url: string; ref?: string } | null {
   const meta = readGitSource(join(PLUGINS_ROOT, name));
-  return meta ? { source: meta.url, ref: meta.ref } : null;
+  return meta ? { url: meta.url, ref: meta.ref } : null;
 }
 
 // ============================================================================
