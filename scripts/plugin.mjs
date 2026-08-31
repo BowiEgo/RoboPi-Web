@@ -50,16 +50,17 @@ try {
     }
   } else if (action === "install") {
     const source = rest[0];
-    if (!source) throw new Error("usage: plugin.mjs install <url> [--ref x] [--name y]");
+    if (!source) throw new Error("usage: plugin.mjs install <url> [--ref x] [--name y] [--dir z]");
     const flag = (flagName) => {
       const idx = rest.indexOf(flagName);
       return idx === -1 ? undefined : rest[idx + 1];
     };
     const ref = flag("--ref");
     const name = flag("--name");
+    const dir = flag("--dir");
     const result = await request("", {
       method: "POST",
-      body: JSON.stringify({ action: "install", source, ref, name }),
+      body: JSON.stringify({ action: "install", source, ref, name, dir }),
     });
     console.log(`✅ 已安装 ${result.plugin.name} v${result.plugin.version}`);
   } else if (action === "update") {
