@@ -2,14 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
+import { ConfigButton } from "./SettingsUi";
 import { MarkdownBody } from "./MarkdownBody";
 
 /**
  * RoboPi 插件管理面板（SettingsPanel 的 "RoboPi 插件" section）。
  *
- * 布局（参考 ModelsConfig/SkillsConfig 视觉风格）：
- * - 左栏：已安装 / 插件市场 两个分组（FileExplorer 风格展开/折叠），点击插件选中
- * - 右栏：选中插件的 README.md（MarkdownBody 渲染；无 README 显示占位）
+ * 布局与 ModelsConfig/SkillsConfig 等设置页保持一致（settings.css 的
+ * config-button 体系 + 列表行分隔线风格）：
+ * - 左栏：已安装 / 插件市场 两个分组（FileExplorer 风格箭头折叠），
+ *   列表行为 panel 风格（borderBottom 分隔），点击选中 → 右栏预览
+ * - 右栏：选中插件的 README.md（MarkdownBody 渲染）
  */
 
 interface InstalledPlugin {
@@ -50,7 +53,7 @@ function CollapseArrow({ open }: { open: boolean }) {
   );
 }
 
-/** 左栏分组（可折叠 header + 列表项） */
+/** 左栏分组（可折叠 header + panel 风格列表） */
 function Group({
   title,
   count,
@@ -68,8 +71,8 @@ function Group({
         onClick={() => setOpen((v) => !v)}
         style={{
           display: "flex", alignItems: "center", gap: 6, width: "100%",
-          padding: "6px 8px", background: "none", border: "none", cursor: "pointer",
-          borderRadius: 4, fontSize: 11, fontWeight: 700, color: "var(--text-muted)",
+          padding: "8px 6px", background: "none", border: "none", cursor: "pointer",
+          borderRadius: 4, fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
           textTransform: "uppercase", letterSpacing: 0.4,
         }}
       >
@@ -153,35 +156,26 @@ export function RoboPiPluginsPanel() {
 
   const style = {
     container: {
-      display: "flex", gap: 12, height: "100%", minHeight: 0,
+      display: "flex", gap: 16, height: "100%", minHeight: 0,
     },
     left: {
-      width: 260, flexShrink: 0, display: "flex", flexDirection: "column" as const, gap: 4,
-      overflowY: "auto" as const, borderRight: "1px solid var(--border)", paddingRight: 8,
+      width: 280, flexShrink: 0, display: "flex", flexDirection: "column" as const, gap: 4,
+      overflowY: "auto" as const, borderRight: "1px solid var(--border)", paddingRight: 12,
     },
     right: {
       flex: 1, minWidth: 0, overflowY: "auto" as const, padding: "0 4px",
     },
-    item: {
-      display: "flex", alignItems: "center" as const, justifyContent: "space-between" as const,
-      gap: 8, width: "100%", padding: "5px 8px", border: "none", borderRadius: 6,
-      background: "none", cursor: "pointer", textAlign: "left" as const,
-      fontSize: 12.5, color: "var(--text)",
+    // panel 风格列表行（与 SkillsConfig 列表一致：分隔线 + 主次文本）
+    row: {
+      padding: "10px 8px",
+      borderBottom: "1px solid var(--border)",
+      borderRadius: 6,
+      cursor: "pointer",
     },
-    itemName: {
-      overflow: "hidden", textOverflow: "ellipsis" as const, whiteSpace: "nowrap" as const, flex: 1,
-    },
-    badge: { fontSize: 10, color: "var(--text-dim)", flexShrink: 0 },
-    devBadge: { fontSize: 10, color: "var(--accent)", flexShrink: 0 },
-    button: {
-      border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)",
-      borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer", flexShrink: 0,
-    } as React.CSSProperties,
-    primaryButton: {
-      border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff",
-      borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer", flexShrink: 0,
-    } as React.CSSProperties,
-    empty: { fontSize: 12, color: "var(--text-dim)", padding: "4px 8px" },
+    rowName: { fontSize: 13, fontWeight: 600, color: "var(--text)" },
+    rowMeta: { fontSize: 11, color: "var(--text-dim)", marginTop: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" as const },
+    devBadge: { color: "var(--accent)" },
+    empty: { fontSize: 12, color: "var(--text-dim)", padding: "8px 6px" },
     error: { fontSize: 12, color: "#ef4444", padding: "4px 8px" },
     readmePlaceholder: {
       fontSize: 12, color: "var(--text-dim)", padding: "12px", border: "1px dashed var(--border)",
@@ -197,47 +191,45 @@ export function RoboPiPluginsPanel() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <div style={style.container}>
-        {/* ============ 左栏：分组列表 ============ */}
+        {/* ============ 左栏：分组列表（panel 风格） ============ */}
         <div style={style.left}>
           <Group title="已安装" count={installed.length}>
             {installed.length === 0 && <div style={style.empty}>无已安装插件</div>}
             {installed.map((p) => (
-              <div key={p.name} style={{ marginBottom: 2 }}>
-                <button
-                  type="button"
-                  onClick={() => setSelected(p.name)}
-                  style={{
-                    ...style.item,
-                    background: selected === p.name ? "var(--bg-selected)" : "transparent",
-                  }}
-                >
-                  <span style={style.itemName}>{p.name}</span>
-                  {p.origin === "dev" ? (
-                    <span style={style.devBadge}>🧪 dev</span>
-                  ) : (
-                    <span style={style.badge}>v{p.version}</span>
-                  )}
-                </button>
-                <div style={{ display: "flex", gap: 4, paddingLeft: 18 }}>
-                  {p.source && (
-                    <button
-                      style={style.button}
-                      disabled={isBusy(`update:${p.name}`)}
-                      onClick={() => run(`update:${p.name}`, "update", { name: p.name })}
-                    >
-                      {isBusy(`update:${p.name}`) ? "…" : "更新"}
-                    </button>
-                  )}
-                  {p.source && (
-                    <button
-                      style={style.button}
-                      disabled={isBusy(`remove:${p.name}`)}
-                      onClick={() => run(`remove:${p.name}`, "remove", { name: p.name })}
-                    >
-                      {isBusy(`remove:${p.name}`) ? "…" : "移除"}
-                    </button>
-                  )}
+              <div
+                key={p.name}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelected(p.name)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelected(p.name); }}
+                style={{
+                  ...style.row,
+                  background: selected === p.name ? "var(--bg-selected)" : "transparent",
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <div style={style.rowName}>
+                  {p.name}
+                  {p.origin === "dev" && <span style={{ ...style.devBadge, marginLeft: 6, fontSize: 10 }}>🧪 dev</span>}
+                  <span style={{ fontWeight: 400, color: "var(--text-dim)", marginLeft: 6, fontSize: 11 }}>v{p.version}</span>
                 </div>
+                <div style={style.rowMeta}>
+                  {p.origin === "dev"
+                    ? "本地开发目录（自动挂载）"
+                    : p.source
+                      ? `git: ${p.source.url}${p.source.ref ? ` @${p.source.ref}` : ""}`
+                      : "本地插件（受保护）"}
+                </div>
+                {p.source && (
+                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <ConfigButton size="small" disabled={isBusy(`update:${p.name}`)} onClick={() => run(`update:${p.name}`, "update", { name: p.name })}>
+                      {isBusy(`update:${p.name}`) ? "…" : "更新"}
+                    </ConfigButton>
+                    <ConfigButton size="small" disabled={isBusy(`remove:${p.name}`)} onClick={() => run(`remove:${p.name}`, "remove", { name: p.name })}>
+                      {isBusy(`remove:${p.name}`) ? "…" : "移除"}
+                    </ConfigButton>
+                  </div>
+                )}
               </div>
             ))}
           </Group>
@@ -249,31 +241,36 @@ export function RoboPiPluginsPanel() {
               </div>
             )}
             {market.map((p) => (
-              <div key={p.name} style={{ marginBottom: 2 }}>
-                <button
-                  type="button"
-                  onClick={() => setSelected(p.name)}
-                  style={{
-                    ...style.item,
-                    background: selected === p.name ? "var(--bg-selected)" : "transparent",
-                  }}
-                >
-                  <span style={style.itemName}>{p.name}</span>
-                  {p.installed ? (
-                    <span style={style.badge}>已装 v{p.installedVersion}</span>
-                  ) : (
-                    <span style={style.badge}>{p.ref ?? ""}</span>
+              <div
+                key={p.name}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelected(p.name)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelected(p.name); }}
+                style={{
+                  ...style.row,
+                  background: selected === p.name ? "var(--bg-selected)" : "transparent",
+                }}
+              >
+                <div style={style.rowName}>
+                  {p.name}
+                  {p.installed && (
+                    <span style={{ fontWeight: 400, color: "var(--text-dim)", marginLeft: 6, fontSize: 11 }}>
+                      已装 v{p.installedVersion}
+                    </span>
                   )}
-                </button>
+                </div>
+                <div style={style.rowMeta}>{p.description ?? p.source}</div>
                 {!p.installed && (
-                  <div style={{ paddingLeft: 18 }}>
-                    <button
-                      style={style.primaryButton}
+                  <div style={{ marginTop: 6 }}>
+                    <ConfigButton
+                      variant="primary"
+                      size="small"
                       disabled={isBusy(`install:${p.source}`)}
                       onClick={() => install(p.source, p.ref, p.dir)}
                     >
                       {isBusy(`install:${p.source}`) ? "安装中…" : "安装"}
-                    </button>
+                    </ConfigButton>
                   </div>
                 )}
               </div>
@@ -289,7 +286,7 @@ export function RoboPiPluginsPanel() {
               <div style={style.readmeTitle}>
                 {selectedPlugin.name}
                 <span style={{ fontWeight: 400, color: "var(--text-dim)", marginLeft: 8 }}>
-                  v{("version" in selectedPlugin && selectedPlugin.version) || ""}
+                  {"version" in selectedPlugin && selectedPlugin.version ? `v${selectedPlugin.version}` : ""}
                   {"origin" in selectedPlugin && selectedPlugin.origin === "dev" ? " · 🧪 开发中（plugins-dev）" : ""}
                 </span>
               </div>
