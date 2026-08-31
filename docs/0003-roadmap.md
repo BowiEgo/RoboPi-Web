@@ -17,7 +17,7 @@
 
 - [x] M2a：@core/settings（pi SettingsManager 包装）+ @core/models + 路由 home/models-config 四件套 + 差分 API 工具（scripts/diff-api.mjs，5 路径全一致）
 - [x] M2b：@core/auth → auth/* 路由（4 路由差分全一致）
-- [ ] M2c：@core/files → files/cwd/file-index
+- [x] M2c：@core/files + @core/session-store（M2f 前置）→ files/cwd/file-index/default-cwd（差分全一致）
 - [ ] M2d：@core/worktrees → worktrees/git
 - [ ] M2e：@core/skills + @core/packages → skills/plugins 路由
 - [ ] M2f：@core/project → sessions 只读等

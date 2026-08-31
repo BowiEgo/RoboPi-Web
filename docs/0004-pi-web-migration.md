@@ -66,7 +66,7 @@ RoboPi-web 与 pi-web 共享 `~/.pi/agent/`（sessions/settings/models/auth/exte
 |---|---|---|---|---|
 | M2a | @core/settings、@core/models | models-config、models-config/catalog、models-config/discover、models-config/test、home | SettingsManager、ModelRuntime | ✅ 已完成 |
 | M2b | @core/auth | auth/* | AuthStorage | ✅ 已完成 |
-| M2c | @core/files | files、cwd、file-index、home | fs 权限体系 | ⬜ |
+| M2c | @core/files + @core/session-store（M2f 前置） | files、cwd/validate、file-index、default-cwd | fs 权限体系 + SessionManager 读取面 | ✅ 已完成 |
 | M2d | @core/worktrees | worktrees、git | git 操作 | ⬜ |
 | M2e | @core/skills、@core/packages | skills、skills/install、plugins | DefaultResourceLoader、DefaultPackageManager | ⬜ |
 | M2f | @core/project | sessions 只读、project-trust、app-update、push、tools、subagents/settings | SessionManager 读取面 | ⬜ |
