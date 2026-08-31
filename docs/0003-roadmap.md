@@ -1,6 +1,6 @@
 # RoboPi Web 实施路线图（ADR-0003）
 
-> 状态：P0 已完成
+> 状态：P0 已完成；pi-web 迁移执行计划详见 [0004-pi-web-migration.md](./0004-pi-web-migration.md)
 > 日期：2026-08-31
 
 ## P0 ✅ 地基（已完成）
@@ -13,12 +13,16 @@
 
 ## P1 周边服务插件化（约 2–4 周）
 
+> 迁移执行计划：见 ADR-0004 的 M2（管理路由六步）与 M5（平台化收尾）
+
 - [ ] 从 pi-web 迁移：settings/models/auth/files/worktrees/skills/subagents/i18n/packages
 - [ ] 每个模块 = 一个 Cordis 插件 + 薄壳路由（保持原 API 签名）
 - [ ] 引入 Schema 配置校验，设置项可视化
 - [ ] 迁移 pi-web 的 .test.mjs 测试，补服务级测试（ctx.mock 模式）
 
 ## P2 会话核心迁移（约 1–2 周，唯一高难度项）
+
+> 迁移执行计划：见 ADR-0004 的 M3（会话核心，含逐条语义验收清单）
 
 - [ ] `@core/sessions`：迁移 rpc-manager 的 wrapper 注册表（globalThis.__piSessions → Cordis 服务）
 - [ ] 保住 pi 语义：fork 后立即销毁 wrapper、10 分钟 idle 超时、并发 start 共享锁、Chat-only 边界重建、SSE 重连与 run id 单调性
