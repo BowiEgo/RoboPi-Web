@@ -130,15 +130,15 @@ export const Config = Schema.object({
 
 ## 8. UI 插件系统（三层，已实现）
 
-插件放 `~/.pi/agent/pi-web/plugins/<name>/`（manifest.json + index.js），5 秒内热更新生效。示例见 `examples/plugins/demo-plugin`。
+插件放 `~/.pi/agent/robopi/plugins/<name>/`（manifest.json + index.js），5 秒内热更新生效。示例见 `examples/plugins/demo-plugin`。
 
 ### 8.0 安装方式（两种）
 
 | 方式 | 命令 | 说明 |
 |---|---|---|
-| 本地文件夹 | 直接复制到 plugins/ 目录 | 不可被 remove（保护） |
+| 本地文件夹 | 直接复制到 plugins/ 目录；**支持符号链接**（`ln -s ~/dev/my-plugin ~/.pi/agent/robopi/plugins/my-plugin`，开发目录即生效目录，改文件即热更） | 不可被 remove（保护） |
 | git 源安装 | `node scripts/plugin.mjs install <url> [--ref <branch>] [--name <dir>]` | clone 到目录 + 写 .git-source.json 元数据 |
-| 插件市场 | Settings 设置 → RoboPi 插件 → 一键安装 | 读 ~/.pi/agent/pi-web/market.json（或 ROBOPI_PLUGIN_MARKET_URL 远程清单） |
+| 插件市场 | Settings 设置 → RoboPi 插件 → 一键安装 | 读 ~/.pi/agent/robopi/market.json（或 ROBOPI_PLUGIN_MARKET_URL 远程清单；ROBOPI_PLUGINS_DIR 可覆盖整个 robopi 数据目录） |
 
 ```bash
 node scripts/plugin.mjs list                      # 列出（含 git 源信息）

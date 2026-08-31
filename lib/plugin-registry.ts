@@ -15,7 +15,10 @@ const execFileAsync = promisify(execFile);
  *   remove 仅对 git 安装的插件生效（保护本地文件夹）
  */
 
-const PLUGINS_ROOT = join(homedir(), ".pi", "agent", "pi-web", "plugins");
+const PLUGINS_ROOT = join(
+  process.env.ROBOPI_PLUGINS_DIR ?? join(homedir(), ".pi", "agent", "robopi"),
+  "plugins",
+);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -38,12 +41,23 @@ function parseManifest(raw: string): PluginManifest {
   };
 }
 
-/** 扫描插件目录，返回可加载的插件列表（含 entry 的 mtime 作为版本号） */
+/** 扫描插件目录，返回可加载的插件列表（含 entry 的 mtime 作为版本号；支持符号链接） */
 export function listPlugins(): PluginListEntry[] {
   let entries: string[];
   try {
     entries = readdirSync(PLUGINS_ROOT, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
+      .filter((d) => {
+        if (d.isDirectory()) return true;
+        // 跟随符号链接（开发目录软链即热更）
+        if (d.isSymbolicLink()) {
+          try {
+            return statSync(join(PLUGINS_ROOT, d.name)).isDirectory();
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      })
       .map((d) => d.name);
   } catch {
     return []; // 目录不存在 = 无插件
@@ -78,15 +92,31 @@ export function listPlugins(): PluginListEntry[] {
   return result;
 }
 
-/** 按 name 读取插件 entry 文件内容（路径已在上一步校验过） */
+/** 按 name（manifest.name）查找插件目录并读取 entry 内容（支持目录名与 name 不一致的软链场景） */
 export function readPluginEntry(name: string): { content: string; versionStamp: number } | null {
-  const entry = listPlugins().find((p) => p.name === name);
-  if (!entry) return null;
-  const dir = join(PLUGINS_ROOT, name);
-  const manifest = parseManifest(readFileSync(join(dir, "manifest.json"), "utf8"));
-  const entryPath = resolve(join(dir), manifest.entry);
-  const stats = statSync(entryPath);
-  return { content: readFileSync(entryPath, "utf8"), versionStamp: stats.mtimeMs };
+  let dirs: string[];
+  try {
+    dirs = readdirSync(PLUGINS_ROOT, { withFileTypes: true })
+      .filter((d) => d.isDirectory() || d.isSymbolicLink())
+      .map((d) => d.name);
+  } catch {
+    return null;
+  }
+  for (const dirName of dirs) {
+    try {
+      const dir = join(PLUGINS_ROOT, dirName);
+      const manifest = parseManifest(readFileSync(join(dir, "manifest.json"), "utf8"));
+      if (manifest.name !== name) continue;
+      const entryPath = resolve(join(dir), manifest.entry);
+      if (!entryPath.startsWith(resolve(dir))) throw new Error("entry must stay inside the plugin directory");
+      const stats = statSync(entryPath);
+      if (!stats.isFile()) continue;
+      return { content: readFileSync(entryPath, "utf8"), versionStamp: stats.mtimeMs };
+    } catch {
+      continue; // 单个插件损坏不影响其它
+    }
+  }
+  return null;
 }
 
 export { PLUGINS_ROOT };
@@ -214,7 +244,10 @@ export interface MarketPluginEntry {
 }
 
 /** 市场清单文件（用户可编辑）；ROBOPI_PLUGIN_MARKET_URL 可指向远程 JSON */
-const MARKET_FILE = join(homedir(), ".pi", "agent", "pi-web", "market.json");
+const MARKET_FILE = join(
+  process.env.ROBOPI_PLUGINS_DIR ?? join(homedir(), ".pi", "agent", "robopi"),
+  "market.json",
+);
 
 function parseMarket(data: unknown): MarketPluginEntry[] {
   if (!isRecord(data) || !Array.isArray(data.plugins)) return [];
