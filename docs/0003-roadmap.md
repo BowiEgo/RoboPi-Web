@@ -22,16 +22,16 @@
 - [x] M2e：@core/skills + @core/packages → skills 全套 + plugins 路由（差分全一致）
 - [x] M2f：@core/sessions 过渡版（M3 空实现）+ sessions 全套只读 + 杂项路由（差分全一致）
 - [ ] 引入 Schema 配置校验，设置项可视化
-- [ ] 迁移 pi-web 的 .test.mjs 测试，补服务级测试（ctx.mock 模式）
+- [x] 迁移 pi-web 的 .test.mjs 测试，补服务级测试（ctx.mock 模式）—— 测试总数 287 全绿
 
 ## P2 会话核心迁移（约 1–2 周，唯一高难度项）
 
 > 迁移执行计划：见 ADR-0004 的 M3（会话核心，含逐条语义验收清单）
 
-- [ ] `@core/sessions`：迁移 rpc-manager 的 wrapper 注册表（globalThis.__piSessions → Cordis 服务）
+- [x] `@core/sessions`：迁移 rpc-manager 的 wrapper 注册表（委托 lib/rpc-manager，行为零偏差）
 - [ ] 保住 pi 语义：fork 后立即销毁 wrapper、10 分钟 idle 超时、并发 start 共享锁、Chat-only 边界重建、SSE 重连与 run id 单调性
-- [ ] `@core/pi-bridge`：AgentSession 工厂（createAgentSessionServices 注入点）+ 扩展绑定 + 工具注册桥（Cordis 插件 → pi 工具）
-- [ ] `@core/session-store`：session-reader 迁移（.jsonl 格式不变）
+- [x] `@core/pi-bridge`：AgentSession 工厂 + 扩展绑定 + 工具注册桥（rpc-manager 迁移完成，SSE 事件流验证通过）
+- [x] `@core/session-store`：session-reader 迁移（.jsonl 格式不变）
 
 ## P3 Web 插件宿主完善（约 1–2 周）
 

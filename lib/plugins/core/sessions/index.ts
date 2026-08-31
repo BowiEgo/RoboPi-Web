@@ -1,30 +1,33 @@
 import { Context, Service } from "cordis";
-import type { SessionManager } from "@earendil-works/pi-coding-agent";
+import {
+  abortSubagent as abortSubagentImpl,
+  destroyRpcSessionsForCwd as destroyRpcSessionsForCwdImpl,
+  getCompletionNotificationSuppressedRpcSessionIds as getSuppressedIdsImpl,
+  getRpcSession as getRpcSessionImpl,
+  getRpcSessionInfos as getRpcSessionInfosImpl,
+  getRunningRpcSessionIds as getRunningIdsImpl,
+  getSubagentRun as getSubagentRunImpl,
+  hasBusyRpcSessionForCwd as hasBusyImpl,
+  setRpcSessionTools as setRpcSessionToolsImpl,
+  startRpcSession as startRpcSessionImpl,
+  steerSubagent as steerSubagentImpl,
+  type AgentSessionWrapper,
+  type RpcSessionStartOptions,
+  type SetRpcSessionToolsResult,
+} from "@/lib/rpc-manager";
 
 /**
- * @core/sessions —— 会话运行时服务（过渡版，M3 前）。
+ * @core/sessions —— 会话运行时服务（M3 完整实现）。
  *
- * M2f 阶段只提供"运行时状态查询"的空实现：RoboPi 尚无 in-process
- * AgentSession（那属于 M3 的 @core/sessions 完整实现），因此：
- * - 运行时会话列表 / running ids / 通知抑制集合 → 空
- * - getRpcSession → undefined（路由自然走文件级路径，与 pi-web 行为一致）
- * - startRpcSession / steerSubagent / abortSubagent → 明确报错（避免静默失败）
+ * 委托 lib/rpc-manager.ts（pi-web 原样迁移的 2043 行会话运行时）：
+ * - wrapper 注册表（globalThis.__piSessions，跨 HMR 存活）
+ * - 会话创建（AgentSession 工厂 + 工具选择 + Chat-only 边界 + 模型范围）
+ * - 并发 start 共享锁、10 分钟 idle 超时、fork 后立即销毁语义
+ * - 子代理运行控制
  *
- * RpcSessionLike 是路由层所需的最小形状（M3 的 AgentSessionWrapper 天然满足）；
- * M3 落地时仅需替换本服务的实现，路由层零改动。
+ * 路由层经 RpcSessionLike 形状访问；wrapper 的事件订阅经
+ * wrapper.onEvent / subscribe 供 SSE 路由使用。
  */
-
-/** 路由层依赖的 wrapper 最小形状（对齐 pi-web rpc-manager 的 AgentSessionWrapper） */
-export interface RpcSessionLike {
-  isAlive(): boolean;
-  isRunning(): boolean;
-  readonly sessionFile: string;
-  readonly inner: { sessionManager: SessionManager; setSessionName(name: string): void };
-  waitUntilReady(): Promise<void>;
-  setSessionName(name: string): void;
-  send(command: unknown): Promise<unknown>;
-  shutdown(): Promise<void>;
-}
 
 export const name = "@core/sessions";
 
@@ -39,59 +42,68 @@ class SessionsService extends Service {
     super(ctx, "sessions", true);
   }
 
-  // ---- M3 前的空实现（运行时状态查询） ----
-
-  /** 运行时会话（M3 前恒 undefined → 路由走文件读取路径） */
-  getRpcSession(_id: string): RpcSessionLike | undefined {
-    return undefined;
+  /** 运行时会话（无则 undefined，路由走文件读取路径） */
+  getRpcSession(sessionId: string): AgentSessionWrapper | undefined {
+    return getRpcSessionImpl(sessionId);
   }
 
-  /** 运行时会话信息列表（M3 前为空） */
-  getRpcSessionInfos(): never[] {
-    return [];
+  /** 运行时会话信息列表 */
+  getRpcSessionInfos() {
+    return getRpcSessionInfosImpl();
   }
 
-  /** 运行中会话 ids（M3 前为空） */
+  /** 运行中会话 ids */
   getRunningRpcSessionIds(): string[] {
-    return [];
+    return getRunningIdsImpl();
   }
 
-  /** 通知抑制集合（M3 前为空） */
+  /** 通知抑制集合 */
   getCompletionNotificationSuppressedRpcSessionIds(): string[] {
-    return [];
+    return getSuppressedIdsImpl();
   }
 
-  /** 子代理运行查询（M3 前无） */
-  getSubagentRun(_id: string): unknown {
-    return undefined;
+  /** 子代理运行查询 */
+  getSubagentRun(sessionId: string) {
+    return getSubagentRunImpl(sessionId);
   }
 
-  // ---- 需 M3 的能力：明确报错而非静默 ----
-
-  startRpcSession(_id: string, _filePath: string, _toolNames?: unknown): Promise<{ session: RpcSessionLike; realSessionId: string }> {
-    return Promise.reject(
-      new Error("startRpcSession is not available until M3 (session runtime)"),
-    );
+  /** 创建/恢复运行时会话（含并发共享锁；fork/clone 语义在 wrapper 内） */
+  startRpcSession(
+    sessionId: string,
+    sessionFile: string,
+    cwd: string | undefined,
+    options: RpcSessionStartOptions = {},
+  ): Promise<{ session: AgentSessionWrapper; realSessionId: string }> {
+    return startRpcSessionImpl(sessionId, sessionFile, cwd, options);
   }
 
-  steerSubagent(_id: string, _message?: unknown): Promise<void> {
-    return Promise.reject(
-      new Error("steerSubagent is not available until M3 (session runtime)"),
-    );
+  /** 子代理 steer */
+  steerSubagent(sessionId: string, message: string): Promise<void> {
+    return steerSubagentImpl(sessionId, message);
   }
 
-  abortSubagent(_id: string): Promise<void> {
-    return Promise.reject(
-      new Error("abortSubagent is not available until M3 (session runtime)"),
-    );
+  /** 设置会话工具集（跨 Chat-only 边界时重建 wrapper） */
+  setRpcSessionTools(
+    sessionId: string,
+    filePath: string | undefined,
+    toolNames: string[] | undefined,
+  ): Promise<SetRpcSessionToolsResult> {
+    return setRpcSessionToolsImpl(sessionId, filePath, toolNames);
   }
 
-  /** 销毁 cwd 相关运行时会话（M3 前 no-op） */
-  destroyRpcSessionsForCwd(_cwd: string): void {}
+  /** 子代理 abort */
+  abortSubagent(sessionId: string): Promise<void> {
+    return abortSubagentImpl(sessionId);
+  }
 
-  /** cwd 是否有忙会话（M3 前恒 false） */
-  hasBusyRpcSessionForCwd(_cwd: string): boolean {
-    return false;
+  /** 销毁 cwd 相关运行时会话 */
+  destroyRpcSessionsForCwd(cwd: string): Promise<number> {
+    return destroyRpcSessionsForCwdImpl(cwd);
+  }
+
+  /** cwd 是否有忙会话 */
+  hasBusyRpcSessionForCwd(cwd: string): boolean {
+    return hasBusyImpl(cwd);
   }
 }
 
