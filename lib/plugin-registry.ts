@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -153,7 +153,43 @@ export function repoNameFromUrl(url: string): string {
   return safe || "plugin";
 }
 
-/** 安装：git clone 到插件目录并记录元数据。dir 为仓库内子目录（monorepo） */
+/**
+ * 定位仓库内 manifest 所在目录：
+ * - 指定 dir → 校验该目录；
+ * - 未指定 → 仓库根有 manifest 则用之；否则递归探测唯一 manifest.json
+ *   （自动提取 monorepo 子目录，歧义时报错提示 --dir）。
+ */
+function findManifestDir(tmpDir: string, dir?: string): string {
+  const base = dir ? resolve(tmpDir, dir) : tmpDir;
+  if (existsSync(join(base, "manifest.json"))) return base;
+  if (dir) throw new Error(`manifest not found in repo dir: ${dir}`);
+
+  const found: string[] = [];
+  const walk = (d: string) => {
+    let entries;
+    try {
+      entries = readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.name === ".git" || e.name === "node_modules" || e.name === "dist") continue;
+      const full = join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name === "manifest.json") found.push(d);
+    }
+  };
+  walk(tmpDir);
+  if (found.length === 0) throw new Error("manifest.json not found in repository");
+  if (found.length > 1) {
+    throw new Error(
+      `multiple manifests found (${found.map((f) => relative(tmpDir, f)).join(", ")}); specify --dir`,
+    );
+  }
+  return found[0];
+}
+
+/** 安装：git clone 到插件目录并记录元数据。dir 为仓库内子目录（monorepo，可自动探测） */
 export async function installPlugin(
   source: string,
   ref?: string,
@@ -179,8 +215,8 @@ export async function installPlugin(
   try {
     await execFileAsync("git", cloneArgs, { timeout: 120_000 });
 
-    // monorepo：manifest 在仓库子目录 dir 下（校验防路径穿越）
-    const manifestDir = dir ? resolve(tmpDir, dir) : tmpDir;
+    // monorepo：manifest 在仓库子目录 dir 下（未指定时自动探测唯一 manifest）
+    const manifestDir = findManifestDir(tmpDir, dir);
     if (!manifestDir.startsWith(resolve(tmpDir))) {
       throw new Error(`invalid dir: ${dir}`);
     }
@@ -194,7 +230,11 @@ export async function installPlugin(
 
     writeFileSync(
       join(finalDir, GIT_SOURCE_FILE),
-      JSON.stringify({ url, ref, dir, installedAt: new Date().toISOString() }, null, 2),
+      JSON.stringify(
+        { url, ref, ...(dir ? { dir } : {}), installedAt: new Date().toISOString() },
+        null,
+        2,
+      ),
       "utf8",
     );
   } finally {
