@@ -85,6 +85,8 @@ export interface PluginListEntry {
   versionStamp: number;
   /** git 源信息（本地插件为 null） */
   source?: { url: string; ref?: string };
+  /** 来源：dev = plugins-dev 自动挂载（开发模式）；installed = 插件目录 */
+  origin?: "dev" | "installed";
 }
 
 declare global {

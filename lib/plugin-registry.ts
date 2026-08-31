@@ -20,6 +20,16 @@ const PLUGINS_ROOT = join(
   "plugins",
 );
 
+/**
+ * dev 模式插件源：<项目根>/plugins-dev（递归扫描含 manifest.json 的目录）。
+ * 开发时自动挂载本地插件目录，无需软链；优先级高于安装目录（同名以 dev 为准）。
+ */
+const DEV_PLUGINS_ROOT = join(process.cwd(), "plugins-dev");
+
+function isDevMode(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -43,77 +53,121 @@ function parseManifest(raw: string): PluginManifest {
 
 /** 扫描插件目录，返回可加载的插件列表（含 entry 的 mtime 作为版本号；支持符号链接） */
 export function listPlugins(): PluginListEntry[] {
-  let entries: string[];
-  try {
-    entries = readdirSync(PLUGINS_ROOT, { withFileTypes: true })
-      .filter((d) => {
-        if (d.isDirectory()) return true;
-        // 跟随符号链接（开发目录软链即热更）
-        if (d.isSymbolicLink()) {
-          try {
-            return statSync(join(PLUGINS_ROOT, d.name)).isDirectory();
-          } catch {
-            return false;
-          }
-        }
-        return false;
-      })
-      .map((d) => d.name);
-  } catch {
-    return []; // 目录不存在 = 无插件
-  }
+  const byName = new Map<string, PluginListEntry>();
 
-  const result: PluginListEntry[] = [];
-  for (const dir of entries) {
-    try {
-      const manifestPath = join(PLUGINS_ROOT, dir, "manifest.json");
-      const manifest = parseManifest(readFileSync(manifestPath, "utf8"));
-      const entryPath = resolve(join(PLUGINS_ROOT, dir), manifest.entry);
-      if (!entryPath.startsWith(resolve(PLUGINS_ROOT, dir))) {
-        throw new Error("entry must stay inside the plugin directory");
+  // 收集目录下插件：installed 源一层（+软链）；dev 源递归（monorepo 嵌套）
+  const collectDirs = (root: string, recursive: boolean): string[] => {
+    const dirs: string[] = [];
+    const walk = (base: string) => {
+      let entries;
+      try {
+        entries = readdirSync(base, { withFileTypes: true });
+      } catch {
+        return;
       }
-      const stats = statSync(entryPath);
-      if (!stats.isFile()) throw new Error(`entry not found: ${manifest.entry}`);
-      result.push({
-        name: manifest.name,
-        version: manifest.version,
-        description: manifest.description,
-        entryUrl: `/api/robopi/plugins/entry?name=${encodeURIComponent(manifest.name)}`,
-        versionStamp: stats.mtimeMs,
-      });
-    } catch (error) {
-      // 单个插件损坏不影响其它插件加载
-      console.warn(
-        `[plugin-registry] skip broken plugin "${dir}":`,
-        error instanceof Error ? error.message : error,
-      );
+      for (const d of entries) {
+        if (d.name === ".git" || d.name === "node_modules" || d.name === "dist") continue;
+        const full = join(base, d.name);
+        const isDir = d.isDirectory()
+          || (d.isSymbolicLink() && (() => {
+            try {
+              return statSync(full).isDirectory();
+            } catch {
+              return false;
+            }
+          })());
+        if (!isDir) continue;
+        if (recursive && !existsSync(join(full, "manifest.json"))) {
+          walk(full); // 非插件目录继续深入
+        } else {
+          dirs.push(full);
+        }
+      }
+    };
+    walk(root);
+    return dirs;
+  };
+
+  const addFromRoot = (root: string, origin: "installed" | "dev", recursive: boolean) => {
+    for (const dir of collectDirs(root, recursive)) {
+      try {
+        const manifest = parseManifest(readFileSync(join(dir, "manifest.json"), "utf8"));
+        const entryPath = resolve(join(dir), manifest.entry);
+        if (!entryPath.startsWith(resolve(dir))) {
+          throw new Error("entry must stay inside the plugin directory");
+        }
+        const stats = statSync(entryPath);
+        if (!stats.isFile()) throw new Error(`entry not found: ${manifest.entry}`);
+        byName.set(manifest.name, {
+          name: manifest.name,
+          version: manifest.version,
+          description: manifest.description,
+          entryUrl: `/api/robopi/plugins/entry?name=${encodeURIComponent(manifest.name)}`,
+          versionStamp: stats.mtimeMs,
+          origin,
+        });
+      } catch (error) {
+        console.warn(
+          `[plugin-registry] skip broken plugin "${dir}":`,
+          error instanceof Error ? error.message : error,
+        );
+      }
     }
-  }
-  return result;
+  };
+
+  // dev 源优先（同名插件以开发目录为准），再合并安装目录
+  if (isDevMode()) addFromRoot(DEV_PLUGINS_ROOT, "dev", true);
+  addFromRoot(PLUGINS_ROOT, "installed", false);
+
+  return [...byName.values()];
 }
 
 /** 按 name（manifest.name）查找插件目录并读取 entry 内容（支持目录名与 name 不一致的软链场景） */
 export function readPluginEntry(name: string): { content: string; versionStamp: number } | null {
-  let dirs: string[];
-  try {
-    dirs = readdirSync(PLUGINS_ROOT, { withFileTypes: true })
-      .filter((d) => d.isDirectory() || d.isSymbolicLink())
-      .map((d) => d.name);
-  } catch {
-    return null;
-  }
-  for (const dirName of dirs) {
-    try {
-      const dir = join(PLUGINS_ROOT, dirName);
-      const manifest = parseManifest(readFileSync(join(dir, "manifest.json"), "utf8"));
-      if (manifest.name !== name) continue;
-      const entryPath = resolve(join(dir), manifest.entry);
-      if (!entryPath.startsWith(resolve(dir))) throw new Error("entry must stay inside the plugin directory");
-      const stats = statSync(entryPath);
-      if (!stats.isFile()) continue;
-      return { content: readFileSync(entryPath, "utf8"), versionStamp: stats.mtimeMs };
-    } catch {
-      continue; // 单个插件损坏不影响其它
+  // 按 listPlugins 的顺序（dev 优先）遍历两源目录，匹配 manifest.name
+  const roots: Array<{ root: string; recursive: boolean }> = [];
+  if (isDevMode()) roots.push({ root: DEV_PLUGINS_ROOT, recursive: true });
+  roots.push({ root: PLUGINS_ROOT, recursive: false });
+
+  for (const { root, recursive } of roots) {
+    const dirs: string[] = [];
+    const walk = (base: string) => {
+      let entries;
+      try {
+        entries = readdirSync(base, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const d of entries) {
+        if (d.name === ".git" || d.name === "node_modules" || d.name === "dist") continue;
+        const full = join(base, d.name);
+        const isDir = d.isDirectory()
+          || (d.isSymbolicLink() && (() => {
+            try {
+              return statSync(full).isDirectory();
+            } catch {
+              return false;
+            }
+          })());
+        if (!isDir) continue;
+        if (recursive && !existsSync(join(full, "manifest.json"))) walk(full);
+        else dirs.push(full);
+      }
+    };
+    walk(root);
+
+    for (const dir of dirs) {
+      try {
+        const manifest = parseManifest(readFileSync(join(dir, "manifest.json"), "utf8"));
+        if (manifest.name !== name) continue;
+        const entryPath = resolve(join(dir), manifest.entry);
+        if (!entryPath.startsWith(resolve(dir))) throw new Error("entry must stay inside the plugin directory");
+        const stats = statSync(entryPath);
+        if (!stats.isFile()) continue;
+        return { content: readFileSync(entryPath, "utf8"), versionStamp: stats.mtimeMs };
+      } catch {
+        continue; // 单个插件损坏不影响其它
+      }
     }
   }
   return null;

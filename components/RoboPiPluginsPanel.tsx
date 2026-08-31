@@ -16,6 +16,7 @@ interface InstalledPlugin {
   version: string;
   description?: string;
   source?: { url: string; ref?: string };
+  origin?: "dev" | "installed";
 }
 
 interface MarketPlugin {
@@ -114,13 +115,18 @@ export function RoboPiPluginsPanel() {
   return (
     <div style={style.section}>
       <div style={style.groupTitle}>已安装（{installed.length}）</div>
-      {installed.length === 0 && <div style={style.empty}>没有已安装的插件。放入 ~/.pi/agent/pi-web/plugins/ 或从下方市场安装。</div>}
+      {installed.length === 0 && <div style={style.empty}>没有已安装的插件。放入 ~/.pi/agent/robopi/plugins/ 或从下方市场安装。</div>}
       {installed.map((p) => (
         <div key={p.name} style={style.card}>
           <div style={{ minWidth: 0 }}>
-            <div style={style.name}>{p.name} <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>v{p.version}</span></div>
+            <div style={style.name}>
+              {p.name} <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>v{p.version}</span>
+              {p.origin === "dev" && (
+                <span style={{ color: "var(--accent)", marginLeft: 6, fontSize: 11 }}>🧪 开发中（plugins-dev）</span>
+              )}
+            </div>
             <div style={style.meta}>
-              {p.source ? `git: ${p.source.url}${p.source.ref ? ` @${p.source.ref}` : ""}` : "本地插件（受保护）"}
+              {p.source ? `git: ${p.source.url}${p.source.ref ? ` @${p.source.ref}` : ""}` : p.origin === "dev" ? "本地开发目录（自动挂载）" : "本地插件（受保护）"}
             </div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
