@@ -183,6 +183,7 @@ export async function GET() {
 | @core/kv-store | `ctx.kvStore` | RoboPi 自有 KV（.robopi/settings.json，演示用） | ✅ P0 |
 | @core/session-store | `ctx.sessionStore` | 会话读取（列表/上下文/分支切片，M2f 前置） | ✅ M2c |
 | @core/files | `ctx.files` | 文件访问权限边界（allowed roots） | ✅ M2c |
+| @core/worktrees | `ctx.worktrees` | git worktree 操作 + git 状态/差异 + cwd 授权 | ✅ M2d |
 | @core/hello | `ctx.hello` | 示例服务（事件 + 依赖声明演示） | ✅ P0 |
 
 ## 13. 差分 API 测试

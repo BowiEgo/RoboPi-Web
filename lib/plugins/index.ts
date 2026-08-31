@@ -7,6 +7,7 @@ import * as models from "./core/models";
 import * as sessionStore from "./core/session-store";
 import * as settings from "./core/settings";
 import * as webui from "./core/webui";
+import * as worktrees from "./core/worktrees";
 
 /**
  * 内置插件清单 —— 加载顺序即依赖方向（webui 最先，供后续插件注入）。
@@ -18,6 +19,7 @@ export const builtinPlugins: BuiltinPluginEntry[] = [
   { name: auth.name, apply: auth.apply },
   { name: sessionStore.name, apply: sessionStore.apply },
   { name: files.name, apply: files.apply },
+  { name: worktrees.name, apply: worktrees.apply },
   { name: kvStore.name, apply: kvStore.apply },
   { name: hello.name, apply: hello.apply },
 ];
