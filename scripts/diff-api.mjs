@@ -45,6 +45,9 @@ const DEFAULT_PATHS = [
 /** 需要忽略的易变字段（路径用 a.b.c 表示，命中则从比较中剔除） */
 const IGNORE_FIELDS = [
   "app.version",
+  "currentVersion",
+  "latestVersion",
+  "updateAvailable",
   "cordis.pluginCount",
   "cordis.plugins",
   "services",

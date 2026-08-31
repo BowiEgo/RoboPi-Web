@@ -69,7 +69,7 @@ RoboPi-web 与 pi-web 共享 `~/.pi/agent/`（sessions/settings/models/auth/exte
 | M2c | @core/files + @core/session-store（M2f 前置） | files、cwd/validate、file-index、default-cwd | fs 权限体系 + SessionManager 读取面 | ✅ 已完成 |
 | M2d | @core/worktrees | worktrees、git/status、git/diff | git 操作 | ✅ 已完成 |
 | M2e | @core/skills + @core/packages | skills、skills/check/update/install/search、plugins | DefaultResourceLoader、DefaultPackageManager | ✅ 已完成 |
-| M2f | @core/project | sessions 只读、project-trust、app-update、push、tools、subagents/settings | SessionManager 读取面 | ⬜ |
+| M2f | @core/sessions（过渡版）+ @core/session-store | sessions 全套只读、project-trust、app-update、push、tools、subagents 全套 | SessionManager 读取面 | ✅ 已完成 |
 
 - **前置决策**：`@core/settings` 的存储路径从 `.robopi/settings.json` **切换到 `~/.pi/agent/settings.json`**（与 pi 生态一致），地基的 settings 插件升级为读 pi 配置。
 - **验收**：① 对应测试全绿；② **差分 API 测试**（`scripts/diff-api.mjs`：同一请求同时打 pi-web 与 RoboPi-web，对比 JSON，允许白名单字段差异）——这是 M2 的核心验收工具。

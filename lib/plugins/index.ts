@@ -6,6 +6,7 @@ import * as kvStore from "./core/kv-store";
 import * as models from "./core/models";
 import * as packages from "./core/packages";
 import * as sessionStore from "./core/session-store";
+import * as sessions from "./core/sessions";
 import * as settings from "./core/settings";
 import * as skills from "./core/skills";
 import * as webui from "./core/webui";
@@ -20,6 +21,7 @@ export const builtinPlugins: BuiltinPluginEntry[] = [
   { name: models.name, apply: models.apply },
   { name: auth.name, apply: auth.apply },
   { name: sessionStore.name, apply: sessionStore.apply },
+  { name: sessions.name, apply: sessions.apply },
   { name: files.name, apply: files.apply },
   { name: worktrees.name, apply: worktrees.apply },
   { name: skills.name, apply: skills.apply },
