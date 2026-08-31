@@ -177,19 +177,19 @@ export function RoboPiPluginsPanel() {
   const selectedSource = selectedInstalled?.source;
 
   return (
-    <ConfigPanelShell embedded title="RoboPi 插件" subtitle="~/.pi/agent/robopi" onClose={() => {}}>
+    <ConfigPanelShell embedded title={t("robopi.title")} subtitle="~/.pi/agent/robopi" onClose={() => {}}>
       <ConfigSplitView>
         {/* ============ 左栏：分组列表 ============ */}
         <ConfigSidebar>
           <ConfigSidebarList>
             <CollapsibleGroupLabel
-              title="已安装"
+              title={t("robopi.installed")}
               count={installed.length}
               open={installedOpen}
               onToggle={() => setInstalledOpen((v) => !v)}
             />
             {installedOpen && installed.length === 0 && (
-              <div style={style.empty}>无已安装插件</div>
+              <div style={style.empty}>{t("robopi.installedEmpty")}</div>
             )}
             {installedOpen && installed.map((p) => (
               <ConfigSidebarItem
@@ -199,7 +199,7 @@ export function RoboPiPluginsPanel() {
               >
                 <ConfigSidebarText className="is-grow">{p.name}</ConfigSidebarText>
                 {p.origin === "dev" ? (
-                  <span style={{ fontSize: 10, color: "var(--accent)" }}>🧪 dev</span>
+                  <span style={{ fontSize: 10, color: "var(--accent)" }}>{t("robopi.devBadge")}</span>
                 ) : (
                   <span style={{ fontSize: 10, color: "var(--text-dim)" }}>v{p.version}</span>
                 )}
@@ -209,14 +209,14 @@ export function RoboPiPluginsPanel() {
             <div style={{ height: 8 }} />
 
             <CollapsibleGroupLabel
-              title="插件市场"
+              title={t("robopi.market")}
               count={market.length}
               open={marketOpen}
               onToggle={() => setMarketOpen((v) => !v)}
             />
             {marketOpen && market.length === 0 && (
               <div style={style.empty}>
-                市场为空。编辑 {marketFile || "market.json"} 添加条目，或设置环境变量 ROBOPI_PLUGIN_MARKET_URL 指向远程清单。
+                {t("robopi.marketEmpty", { file: marketFile || "market.json" })}
               </div>
             )}
             {marketOpen && market.map((p) => (
@@ -227,9 +227,9 @@ export function RoboPiPluginsPanel() {
               >
                 <ConfigSidebarText className="is-grow">{p.name}</ConfigSidebarText>
                 {p.installed ? (
-                  <span style={{ fontSize: 10, color: "var(--text-dim)" }}>已装 v{p.installedVersion}</span>
+                  <span style={{ fontSize: 10, color: "var(--text-dim)" }}>{t("robopi.installedVersion", { version: p.installedVersion ?? "" })}</span>
                 ) : (
-                  <span style={{ fontSize: 10, color: "var(--accent)" }}>{p.ref ?? "可安装"}</span>
+                  <span style={{ fontSize: 10, color: "var(--accent)" }}>{p.ref ?? t("robopi.installable")}</span>
                 )}
               </ConfigSidebarItem>
             ))}
@@ -239,14 +239,14 @@ export function RoboPiPluginsPanel() {
         {/* ============ 右栏：操作区 + README ============ */}
         <ConfigDetailStack>
           <div style={style.detail}>
-            {!selectedPlugin && <div style={style.readmePlaceholder}>从左侧选择一个插件查看说明</div>}
+            {!selectedPlugin && <div style={style.readmePlaceholder}>{t("robopi.selectHint")}</div>}
 
             {selectedPlugin && (
               <>
                 <div style={style.detailTitle}>
                   {selectedPlugin.name}
                   {selectedInstalled?.origin === "dev" && (
-                    <span style={{ fontSize: 11, color: "var(--accent)", marginLeft: 8 }}>🧪 开发中（plugins-dev）</span>
+                    <span style={{ fontSize: 11, color: "var(--accent)", marginLeft: 8 }}>{t("robopi.devInProgress")}</span>
                   )}
                 </div>
                 <div style={style.detailMeta}>
@@ -256,10 +256,10 @@ export function RoboPiPluginsPanel() {
                       ? `@${selectedMarket.ref}`
                       : ""}
                   {selectedInstalled?.origin === "dev"
-                    ? " · 本地开发目录（自动挂载）"
+                    ? ` · ${t("robopi.localDevDir")}`
                     : selectedSource
-                      ? ` · git: ${selectedSource.url}${selectedSource.ref ? ` @${selectedSource.ref}` : ""}`
-                      : " · 本地插件（受保护）"}
+                      ? ` · ${t("robopi.gitSource", { url: selectedSource.url })}${selectedSource.ref ? ` @${selectedSource.ref}` : ""}`
+                      : ` · ${t("robopi.localProtected")}`}
                 </div>
 
                 {/* 操作区（与 ModelsConfig 一致：操作在详情侧） */}
@@ -267,10 +267,10 @@ export function RoboPiPluginsPanel() {
                   {selectedInstalled && !selectedInstalled.origin && selectedSource && (
                     <>
                       <ConfigButton size="small" disabled={isBusy(`update:${selected}`)} onClick={() => run(`update:${selected}`, "update", { name: selected })}>
-                        {isBusy(`update:${selected}`) ? "…" : "更新"}
+                        {isBusy(`update:${selected}`) ? "…" : t("robopi.update")}
                       </ConfigButton>
                       <ConfigButton size="small" disabled={isBusy(`remove:${selected}`)} onClick={() => run(`remove:${selected}`, "remove", { name: selected })}>
-                        {isBusy(`remove:${selected}`) ? "…" : "移除"}
+                        {isBusy(`remove:${selected}`) ? "…" : t("robopi.remove")}
                       </ConfigButton>
                     </>
                   )}
@@ -281,7 +281,7 @@ export function RoboPiPluginsPanel() {
                       disabled={isBusy(`install:${selectedMarket.source}`)}
                       onClick={() => run(`install:${selectedMarket.source}`, "install", { source: selectedMarket.source, ref: selectedMarket.ref, dir: selectedMarket.dir })}
                     >
-                      {isBusy(`install:${selectedMarket.source}`) ? "安装中…" : "安装"}
+                      {isBusy(`install:${selectedMarket.source}`) ? t("robopi.installing") : t("robopi.install")}
                     </ConfigButton>
                   )}
                 </div>
@@ -289,7 +289,7 @@ export function RoboPiPluginsPanel() {
                 {readme?.name === selected && readme.content ? (
                   <MarkdownBody className="markdown-custom-message">{readme.content}</MarkdownBody>
                 ) : (
-                  <div style={style.readmePlaceholder}>该插件没有 README.md（在插件目录添加 README.md 即可在此显示）</div>
+                  <div style={style.readmePlaceholder}>{t("robopi.noReadme")}</div>
                 )}
               </>
             )}
@@ -300,7 +300,7 @@ export function RoboPiPluginsPanel() {
       {/* 底部提示 */}
       <div style={{ ...style.empty, borderTop: "1px solid var(--border)", padding: "8px 12px" }}>
         {error && <div style={style.error}>⚠️ {error}</div>}
-        <div>提示：dev 模式下 plugins-dev 下的插件自动挂载（🧪 标记）；修改插件文件后 5 秒内自动热更新；本地/开发插件受保护，git 安装的可更新与移除。</div>
+        <div>{t("robopi.footerHint")}</div>
       </div>
     </ConfigPanelShell>
   );
