@@ -16,7 +16,7 @@
 > 迁移执行计划：见 ADR-0004 的 M2（管理路由六步）与 M5（平台化收尾）
 
 - [x] M2a：@core/settings（pi SettingsManager 包装）+ @core/models + 路由 home/models-config 四件套 + 差分 API 工具（scripts/diff-api.mjs，5 路径全一致）
-- [ ] M2b：@core/auth → auth/* 路由
+- [x] M2b：@core/auth → auth/* 路由（4 路由差分全一致）
 - [ ] M2c：@core/files → files/cwd/file-index
 - [ ] M2d：@core/worktrees → worktrees/git
 - [ ] M2e：@core/skills + @core/packages → skills/plugins 路由

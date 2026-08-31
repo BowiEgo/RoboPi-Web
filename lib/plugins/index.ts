@@ -1,4 +1,5 @@
 import type { BuiltinPluginEntry } from "@/lib/cordis/types";
+import * as auth from "./core/auth";
 import * as hello from "./core/hello";
 import * as kvStore from "./core/kv-store";
 import * as models from "./core/models";
@@ -12,6 +13,7 @@ export const builtinPlugins: BuiltinPluginEntry[] = [
   { name: webui.name, apply: webui.apply },
   { name: settings.name, apply: settings.apply },
   { name: models.name, apply: models.apply },
+  { name: auth.name, apply: auth.apply },
   { name: kvStore.name, apply: kvStore.apply },
   { name: hello.name, apply: hello.apply },
 ];

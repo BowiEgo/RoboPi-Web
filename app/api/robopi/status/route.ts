@@ -42,6 +42,10 @@ export async function GET() {
       models: {
         configKeys: Object.keys(ctx.models.readConfig()),
       },
+      auth: {
+        oauthProviderCount: (await ctx.auth.listProviders()).oauthProviders.length,
+        apiKeyProviderCount: (await ctx.auth.listProviders()).apiKeyProviders.length,
+      },
       webui: {
         slots: ctx.webui.getSnapshot(),
       },

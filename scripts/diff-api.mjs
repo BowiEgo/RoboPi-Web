@@ -16,12 +16,13 @@ import assert from "node:assert/strict";
 
 const rawArgs = argv.slice(2);
 const args = {};
+// 值型参数：--path /api/x、--method POST、--body {...}、--left URL、--right URL
+const VALUE_FLAGS = new Set(["path", "method", "body", "left", "right"]);
 for (let i = 0; i < rawArgs.length; i++) {
   const [k, ...rest] = rawArgs[i].split("=");
   const key = k.replace(/^--/, "");
   let value = rest.join("=") || true;
-  if (key === "path" && value === true) {
-    // 支持 `--path /api/x` 空格分隔形式
+  if (VALUE_FLAGS.has(key) && value === true) {
     value = rawArgs[++i];
   }
   if (key === "path") {
@@ -76,8 +77,13 @@ function sortKeys(value) {
   return value;
 }
 
-async function fetchJson(base, path) {
-  const res = await fetch(`${base}${path}`, { cache: "no-store", signal: AbortSignal.timeout(30_000) });
+async function fetchJson(base, path, method = "GET", body) {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
+    cache: "no-store",
+    signal: AbortSignal.timeout(30_000),
+  });
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch { json = { __raw: text }; }
@@ -90,7 +96,9 @@ let failed = 0;
 console.log(`diff-api: ${LEFT}  vs  ${RIGHT}\n`);
 for (const path of paths) {
   try {
-    const [left, right] = await Promise.all([fetchJson(LEFT, path), fetchJson(RIGHT, path)]);
+    const method = args.method ?? "GET";
+    const body = args.body ? JSON.parse(String(args.body)) : undefined;
+    const [left, right] = await Promise.all([fetchJson(LEFT, path, method, body), fetchJson(RIGHT, path, method, body)]);
     // 双方 5xx（如上游网络不可达）视为等价：环境问题而非迁移差异
     if (left.status >= 500 && right.status >= 500 && left.json?.error && right.json?.error) {
       console.log(`⚠️ ${path}  双方 5xx（left ${left.status} / right ${right.status}）：${left.json.error.slice(0, 60)}`);
