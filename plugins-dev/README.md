@@ -87,3 +87,58 @@ window.React  // 宿主暴露的 React 19（无需构建工具）
 - `plugins-dev/` 目录已被主仓库 .gitignore 忽略（插件代码归属插件自己的 git 仓库）
 - 软链目录名可随意（插件身份 = manifest.json 的 name），如想立即发布可让目录名 = name
 - 本地开发目录（软链）不会被 `plugin.mjs remove` 删除（无 .git-source.json 元数据 = 受保护）
+
+## 收入市场（发布插件）
+
+市场清单：`~/.pi/agent/robopi/market.json`（每台机器独立；或 `ROBOPI_PLUGIN_MARKET_URL` 指向远程清单实现公共市场）。
+
+### 方式一：CLI（推荐）
+
+```bash
+# 发布（插件仓库已 push + 打 tag 后）：
+node scripts/plugin.mjs market-add workspace git@github.com:BowiEgo/robopi-workspace.git \
+  --ref v0.4.0 --dir plugins/workspace --description "工作区统计插件"
+
+node scripts/plugin.mjs market          # 查看市场（含已安装状态）
+node scripts/plugin.mjs market-remove <name>   # 从市场移除
+```
+
+### 方式二：手动编辑 market.json
+
+```json
+{
+  "plugins": [
+    {
+      "name": "workspace",
+      "description": "工作区统计插件",
+      "source": "git:git@github.com:BowiEgo/robopi-workspace.git",
+      "ref": "v0.4.0",
+      "dir": "plugins/workspace"
+    }
+  ]
+}
+```
+
+### 条目字段
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `name` | ✅ | 插件名（= manifest.name，安装后作为身份） |
+| `source` | ✅ | git 源：`git:` 前缀可选，支持 https/ssh/本地路径 |
+| `description` | — | 市场列表展示文案 |
+| `ref` | — | branch/tag/commit（推荐 tag，如 `v1.0.0`） |
+| `dir` | — | monorepo 仓库内 manifest 所在子目录（缺省 = 仓库根） |
+
+### 公共市场模式（多台机器分发）
+
+1. 把 market.json 推到一个公开仓库（如 `github.com/you/robopi-market`）；
+2. 各机器设置环境变量：`ROBOPI_PLUGIN_MARKET_URL=https://raw.githubusercontent.com/you/robopi-market/main/market.json`；
+3. 市场 API / UI 自动从远程拉取（10 分钟缓存），本地 market.json 仍然可用。
+
+### 安装后的管理
+
+```bash
+node scripts/plugin.mjs install <url> [--ref x] [--dir y]   # 直接装（不走市场）
+node scripts/plugin.mjs update <name>        # git fetch + reset 到 ref
+node scripts/plugin.mjs remove <name>        # 仅 git 安装的（本地/软链受保护）
+```
