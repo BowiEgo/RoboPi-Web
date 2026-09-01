@@ -55,14 +55,18 @@ try {
     const host = document.querySelector('[data-plugin-host="sidebar-bottom"]');
     return host ? host.textContent : "";
   });
+  const dockText = await page.evaluate(() => {
+    const dock = document.querySelector('[role="complementary"]');
+    return dock ? dock.textContent : "";
+  });
 
   // Level-1: sidebar-bottom hosts plugin content
   check("level-1 slot: sidebar-bottom mounted", sidebarText.length > 0);
   check("demo-plugin panel rendered", sidebarText.includes("demo-plugin"));
-  check("worktable container rendered", sidebarText.includes("🧩 工作台"));
 
-  // Worktable: collapsible header + worktable items
-  check("worktable items (overview/wiki/office)", ["概览", "Wiki 知识库", "办公助手"].every((t) => sidebarText.includes(t)));
+  // Worktable dock panel: renders beside the chat column with worktable items
+  check("worktable dock rendered", dockText.includes("🧩 工作台"));
+  check("worktable items (overview/wiki/office)", ["概览", "Wiki 知识库", "办公助手"].every((t) => dockText.includes(t)));
 
   // Level-2: component override mechanism (register a probe override directly,
   // independent of demo-plugin's own (currently disabled) override sample)

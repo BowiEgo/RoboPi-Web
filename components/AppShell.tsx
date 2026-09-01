@@ -11,7 +11,9 @@ import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
-import { PluginSlot } from "./PluginSlot";
+import { PluginSlot, pluginApiForDock } from "./PluginSlot";
+import { DockPanel, DOCK_DEFAULT_WIDTH, DOCK_MAX_WIDTH, DOCK_MIN_WIDTH, type DockSide } from "./DockPanel";
+import { useDockPanelRenderer } from "@/lib/plugin-client";
 import { SystemPromptPanel } from "./SystemPromptPanel";
 import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
 import { AgentSessionPanel } from "./AgentSessionPanel";
@@ -139,6 +141,23 @@ export function AppShell() {
   const [projectTrustError, setProjectTrustError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  // Dock panel state (worktable window): side + width, persisted width in localStorage
+  const [dockSide, setDockSide] = useState<DockSide>("left");
+  const [dockWidth, setDockWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return DOCK_DEFAULT_WIDTH;
+    const stored = Number(window.localStorage.getItem("robopi-dock-width"));
+    return Number.isFinite(stored) ? Math.min(DOCK_MAX_WIDTH, Math.max(DOCK_MIN_WIDTH, stored)) : DOCK_DEFAULT_WIDTH;
+  });
+  const [dockOpen, setDockOpen] = useState(false);
+  const dockRenderer = useDockPanelRenderer();
+  const dockAutoOpenedRef = useRef(false);
+  // Open the dock automatically once a plugin registers content (first time only)
+  useEffect(() => {
+    if (dockRenderer && !dockAutoOpenedRef.current) {
+      dockAutoOpenedRef.current = true;
+      setDockOpen(true);
+    }
+  }, [dockRenderer]);
   const [mobileToolbarMoreOpen, setMobileToolbarMoreOpen] = useState(false);
   const [mobileSidebarReady, setMobileSidebarReady] = useState(false);
   const sidebarWidthRef = useRef(SIDEBAR_DEFAULT_WIDTH);
@@ -1841,8 +1860,22 @@ export function AppShell() {
         />
       )}
 
-      {/* Center: chat */}
+      {/* Center: dock panel + chat */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden", minHeight: 0 }}>
+          {dockOpen && dockRenderer && dockSide === "left" && (
+            <DockPanel
+              side="left"
+              width={dockWidth}
+              title="🧩 工作台"
+              onWidthChange={setDockWidth}
+              onSideChange={setDockSide}
+              onClose={() => setDockOpen(false)}
+            >
+              {dockRenderer(pluginApiForDock)}
+            </DockPanel>
+          )}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
@@ -2426,6 +2459,21 @@ export function AppShell() {
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-dim)", fontSize: 12 }}>
                {translate("files.noneOpen")}
             </div>
+          )}
+        </div>
+      </div>
+
+          {dockOpen && dockRenderer && dockSide === "right" && (
+            <DockPanel
+              side="right"
+              width={dockWidth}
+              title="🧩 工作台"
+              onWidthChange={setDockWidth}
+              onSideChange={setDockSide}
+              onClose={() => setDockOpen(false)}
+            >
+              {dockRenderer(pluginApiForDock)}
+            </DockPanel>
           )}
         </div>
       </div>

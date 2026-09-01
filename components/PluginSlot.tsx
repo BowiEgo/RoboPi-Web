@@ -20,6 +20,8 @@ const pluginApi: PluginApi = {
   getWorktableItems: () => getWorktableItems(),
 };
 
+export { pluginApi as pluginApiForDock };
+
 export function PluginSlot({ name }: { name: PluginSlotName }) {
   const renderers = useSlot(name);
   if (renderers.length === 0) return null;

@@ -39,6 +39,7 @@ function createEmptyState(): PluginRegistryState {
     components: new Map(),
     messageRenderers: new Map(),
     worktableItems: new Map(),
+    dockPanel: null,
   };
 }
 
@@ -55,6 +56,7 @@ function updateState(mutator: (next: PluginRegistryState) => void): void {
     components: new Map(state.components),
     messageRenderers: new Map(state.messageRenderers),
     worktableItems: new Map(state.worktableItems),
+    dockPanel: state.dockPanel,
   };
   mutator(next);
   state = next;
@@ -112,6 +114,11 @@ function installGlobalApi(): void {
     registerWorktableItem(item: WorktableItem): void {
       updateState((next) => {
         next.worktableItems = new Map(next.worktableItems).set(item.id, item);
+      });
+    },
+    registerDockPanel(renderer: SlotRenderer): void {
+      updateState((next) => {
+        next.dockPanel = renderer;
       });
     },
   };
@@ -208,6 +215,11 @@ export function getRegisteredMessageTypes(): Set<string> {
 /** 工作台项注册表快照（worktable 容器插件经 api.getWorktableItems() 读取） */
 export function getWorktableItems(): WorktableItem[] {
   return [...state.worktableItems.values()];
+}
+
+/** Dock panel content renderer (null when no plugin registered) */
+export function useDockPanelRenderer(): SlotRenderer | null {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot).dockPanel;
 }
 
 // 保证在客户端模块加载时安装全局 API

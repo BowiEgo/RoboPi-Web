@@ -76,6 +76,8 @@ export interface PluginRegistryState {
   components: Map<OverridableComponentName, ComponentFactory>;
   messageRenderers: Map<string, MessageRenderer>;
   worktableItems: Map<string, WorktableItem>;
+  /** Dock panel content (single renderer; later registrations replace) */
+  dockPanel: SlotRenderer | null;
 }
 
 /** manifest.json 结构 */
@@ -111,6 +113,8 @@ declare global {
       registerComponent(name: OverridableComponentName, factory: ComponentFactory): void;
       registerMessageRenderer(customType: string, renderer: MessageRenderer): void;
       registerWorktableItem(item: WorktableItem): void;
+      /** Register the dock panel content (rendered beside the chat column) */
+      registerDockPanel(renderer: SlotRenderer): void;
     };
     React?: typeof import("react");
   }
