@@ -51,8 +51,8 @@ export interface WorktableItem {
   /** 唯一 id（其他插件注册同名 id 可覆盖内置占位项） */
   id: string;
   label: string;
-  /** emoji 或短图标 */
-  icon?: string;
+  /** 图标（emoji 或 pi-web 风格 SVG 元素） */
+  icon?: React.ReactNode;
   description?: string;
   /** 渲染组件；缺省时列表项点击显示占位（等待插件实现） */
   component?: ComponentType<{ api: PluginApi }>;
