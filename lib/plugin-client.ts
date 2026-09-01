@@ -11,7 +11,6 @@ import type {
   PluginRegistryState,
   PluginSlotName,
   SlotRenderer,
-  WorktableItem,
 } from "@/lib/plugin-api";
 
 /**
@@ -51,7 +50,6 @@ function createEmptyState(): PluginRegistryState {
     },
     components: new Map(),
     messageRenderers: new Map(),
-    worktableItems: new Map(),
     dockPanel: null,
     dockOpen: true,
     dockSide: readStoredDockSide(),
@@ -70,7 +68,6 @@ function updateState(mutator: (next: PluginRegistryState) => void): void {
     slots: { ...state.slots },
     components: new Map(state.components),
     messageRenderers: new Map(state.messageRenderers),
-    worktableItems: new Map(state.worktableItems),
     dockPanel: state.dockPanel,
     dockOpen: state.dockOpen,
     dockSide: state.dockSide,
@@ -127,14 +124,6 @@ function installGlobalApi(): void {
       updateState((next) => {
         next.messageRenderers = new Map(next.messageRenderers).set(customType, renderer);
       });
-    },
-    registerWorktableItem(item: WorktableItem): void {
-      updateState((next) => {
-        next.worktableItems = new Map(next.worktableItems).set(item.id, item);
-      });
-    },
-    getWorktableItems(): WorktableItem[] {
-      return [...state.worktableItems.values()];
     },
     registerDockPanel(renderer: SlotRenderer): void {
       updateState((next) => {
@@ -276,11 +265,6 @@ export function useMessageRenderer(customType: string): MessageRenderer | undefi
 /** 所有已注册消息渲染器的 customType 集合（MessageView 据此分发） */
 export function getRegisteredMessageTypes(): Set<string> {
   return new Set(state.messageRenderers.keys());
-}
-
-/** 工作台项注册表快照（worktable 容器插件经 api.getWorktableItems() 读取） */
-export function getWorktableItems(): WorktableItem[] {
-  return [...state.worktableItems.values()];
 }
 
 /** Dock panel content renderer (null when no plugin registered) */

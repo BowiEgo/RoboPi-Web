@@ -46,18 +46,6 @@ export type MessageRenderer = (
   api: PluginApi,
 ) => React.ReactNode;
 
-/** 工作台项（worktable 插件渲染的列表项；其他插件注册后即可出现在工作台） */
-export interface WorktableItem {
-  /** 唯一 id（其他插件注册同名 id 可覆盖内置占位项） */
-  id: string;
-  label: string;
-  /** 图标（emoji 或 pi-web 风格 SVG 元素） */
-  icon?: React.ReactNode;
-  description?: string;
-  /** 渲染组件；缺省时列表项点击显示占位（等待插件实现） */
-  component?: ComponentType<{ api: PluginApi }>;
-}
-
 /** Dock panel docking sides (VSCode-style four-way) */
 export type DockSide = "left" | "right" | "top" | "bottom";
 
@@ -69,8 +57,6 @@ export interface PluginApi {
   listSessions(): Promise<unknown>;
   /** 打开会话/文件等动作（占位，后续按需扩展） */
   openSession(sessionId: string): void;
-  /** 工作台项注册表（worktable 等容器插件读取） */
-  getWorktableItems(): WorktableItem[];
   /** Open the dock panel (rendered below the file browser) */
   openDock(): void;
   /** Dock the panel to a side of the chat area (VSCode-style) */
@@ -84,7 +70,6 @@ export interface PluginRegistryState {
   slots: Record<PluginSlotName, Map<string, SlotRenderer>>;
   components: Map<OverridableComponentName, ComponentFactory>;
   messageRenderers: Map<string, MessageRenderer>;
-  worktableItems: Map<string, WorktableItem>;
   /** Dock panel content (single renderer; later registrations replace) */
   dockPanel: SlotRenderer | null;
   /** Dock panel visibility (opened by plugins, closed via the panel's × button) */
@@ -125,8 +110,6 @@ declare global {
       registerSlot(slot: PluginSlotName, renderer: SlotRenderer): void;
       registerComponent(name: OverridableComponentName, factory: ComponentFactory): void;
       registerMessageRenderer(customType: string, renderer: MessageRenderer): void;
-      registerWorktableItem(item: WorktableItem): void;
-      getWorktableItems(): WorktableItem[];
       /** Register the dock panel content (rendered below the file browser) */
       registerDockPanel(renderer: SlotRenderer): void;
       /** Open the dock panel */
