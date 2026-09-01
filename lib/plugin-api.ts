@@ -58,6 +58,9 @@ export interface WorktableItem {
   component?: ComponentType<{ api: PluginApi }>;
 }
 
+/** Dock panel docking sides (VSCode-style four-way) */
+export type DockSide = "left" | "right" | "top" | "bottom";
+
 /** 插件获取宿主能力的 API 桥（fetch 现有路由的封装） */
 export interface PluginApi {
   /** 读取宿主信息（版本/插件列表） */
@@ -70,6 +73,8 @@ export interface PluginApi {
   getWorktableItems(): WorktableItem[];
   /** Open the dock panel (rendered below the file browser) */
   openDock(): void;
+  /** Dock the panel to a side of the chat area (VSCode-style) */
+  setDockSide(side: DockSide): void;
 }
 
 /** 浏览器全局注册表内容 */
@@ -82,6 +87,8 @@ export interface PluginRegistryState {
   dockPanel: SlotRenderer | null;
   /** Dock panel visibility (opened by plugins, closed via the panel's × button) */
   dockOpen: boolean;
+  /** Dock panel side relative to the chat area */
+  dockSide: DockSide;
 }
 
 /** manifest.json 结构 */
@@ -123,6 +130,8 @@ declare global {
       openDock(): void;
       /** Set dock panel visibility (plugin-owned close button) */
       setDockOpen(open: boolean): void;
+      /** Dock the panel to a side of the chat area (VSCode-style) */
+      setDockSide(side: DockSide): void;
     };
     React?: typeof import("react");
   }

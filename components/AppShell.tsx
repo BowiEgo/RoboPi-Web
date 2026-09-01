@@ -12,7 +12,7 @@ import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
 import { PluginSlot, pluginApiForDock } from "./PluginSlot";
-import { useDockOpen, useDockPanelRenderer } from "@/lib/plugin-client";
+import { useDockOpen, useDockPanelRenderer, useDockSide } from "@/lib/plugin-client";
 import { SystemPromptPanel } from "./SystemPromptPanel";
 import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
 import { AgentSessionPanel } from "./AgentSessionPanel";
@@ -143,6 +143,8 @@ export function AppShell() {
   // Dock panel state (worktable window below the file browser): height, persisted
   const dockRenderer = useDockPanelRenderer();
   const dockOpen = useDockOpen();
+  const dockSide = useDockSide();
+  const dockVertical = dockSide === "top" || dockSide === "bottom";
   const [mobileToolbarMoreOpen, setMobileToolbarMoreOpen] = useState(false);
   const [mobileSidebarReady, setMobileSidebarReady] = useState(false);
   const sidebarWidthRef = useRef(SIDEBAR_DEFAULT_WIDTH);
@@ -1845,14 +1847,8 @@ export function AppShell() {
         />
       )}
 
-      {/* Center: dock panel (plugin-owned UI) + chat */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden", minWidth: 0 }}>
-        {dockOpen && dockRenderer && (
-          <div style={{ flexShrink: 0, height: "100%", display: "flex", overflow: "hidden" }}>
-            {dockRenderer(pluginApiForDock)}
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Center: chat */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
@@ -2265,8 +2261,12 @@ export function AppShell() {
         {isMobile && renderProjectTrustWarning(true)}
         </div>
 
-        {/* Chat content */}
-        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        {/* Chat content + dock panel (four-way docking, plugin-owned UI) */}
+        <div style={{ flex: 1, display: "flex", flexDirection: dockVertical ? "column" : "row", overflow: "hidden", minHeight: 0 }}>
+          {(dockSide === "top" || dockSide === "left") && dockOpen && dockRenderer && (
+            <div style={{ flexShrink: 0, overflow: "hidden" }}>{dockRenderer(pluginApiForDock)}</div>
+          )}
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", position: "relative" }}>
           {showChat ? (
             <ChatWindow
               key={sessionKey}
@@ -2335,6 +2335,10 @@ export function AppShell() {
               </div>
             )
           ) : null}
+          </div>
+          {(dockSide === "bottom" || dockSide === "right") && dockOpen && dockRenderer && (
+            <div style={{ flexShrink: 0, overflow: "hidden" }}>{dockRenderer(pluginApiForDock)}</div>
+          )}
         </div>
       </div>
 
@@ -2438,7 +2442,6 @@ export function AppShell() {
             </div>
           )}
         </div>
-      </div>
       </div>
     </div>
     {settingsSection && (

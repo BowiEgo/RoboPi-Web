@@ -4,6 +4,7 @@ import React from "react";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type {
   ComponentFactory,
+  DockSide,
   MessageRenderer,
   OverridableComponentName,
   PluginListEntry,
@@ -41,6 +42,7 @@ function createEmptyState(): PluginRegistryState {
     worktableItems: new Map(),
     dockPanel: null,
     dockOpen: true,
+    dockSide: "left",
   };
 }
 
@@ -59,6 +61,7 @@ function updateState(mutator: (next: PluginRegistryState) => void): void {
     worktableItems: new Map(state.worktableItems),
     dockPanel: state.dockPanel,
     dockOpen: state.dockOpen,
+    dockSide: state.dockSide,
   };
   mutator(next);
   state = next;
@@ -129,7 +132,22 @@ function installGlobalApi(): void {
     setDockOpen(open: boolean): void {
       setDockOpen(open);
     },
+    setDockSide(side: DockSide): void {
+      setDockSide(side);
+    },
   };
+}
+
+/** Dock the panel to a side of the chat area. */
+export function setDockSide(side: DockSide): void {
+  updateState((next) => {
+    next.dockSide = side;
+  });
+}
+
+/** Dock panel side relative to the chat area. */
+export function useDockSide(): DockSide {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot).dockSide;
 }
 
 /** Open/close the dock panel (host AppShell and plugins share this state). */
