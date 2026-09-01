@@ -28,6 +28,18 @@ const POLL_INTERVAL_MS = 5_000;
 type Listener = () => void;
 const listeners = new Set<Listener>();
 
+const DOCK_SIDE_KEY = "robopi-dock-side";
+
+function readStoredDockSide(): DockSide {
+  if (typeof window === "undefined") return "left";
+  try {
+    const value = window.localStorage.getItem(DOCK_SIDE_KEY);
+    return value === "right" || value === "top" || value === "bottom" ? value : "left";
+  } catch {
+    return "left";
+  }
+}
+
 function createEmptyState(): PluginRegistryState {
   return {
     slots: {
@@ -42,7 +54,7 @@ function createEmptyState(): PluginRegistryState {
     worktableItems: new Map(),
     dockPanel: null,
     dockOpen: true,
-    dockSide: "left",
+    dockSide: readStoredDockSide(),
   };
 }
 
@@ -144,11 +156,16 @@ function installGlobalApi(): void {
   };
 }
 
-/** Dock the panel to a side of the chat area. */
+/** Dock the panel to a side of the chat area (persisted across reloads). */
 export function setDockSide(side: DockSide): void {
   updateState((next) => {
     next.dockSide = side;
   });
+  try {
+    window.localStorage.setItem(DOCK_SIDE_KEY, side);
+  } catch {
+    /* ignore storage errors */
+  }
 }
 
 /** Dock panel side relative to the chat area. */
