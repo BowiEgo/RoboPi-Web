@@ -6,8 +6,7 @@ const source = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8"
 
 function fileContentBlock() {
   const start = source.indexOf("{/* Only the active viewer");
-  // The file content block now ends where the dock panel section begins
-  const end = source.indexOf("{/* Dock panel (worktable window) below the file browser */}", start);
+  const end = source.indexOf("</div>\n      </div>\n    </div>", start);
   assert.notEqual(start, -1, "file content comment not found");
   assert.notEqual(end, -1, "end of file content block not found");
   return source.slice(start, end);

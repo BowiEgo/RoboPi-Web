@@ -40,7 +40,7 @@ function createEmptyState(): PluginRegistryState {
     messageRenderers: new Map(),
     worktableItems: new Map(),
     dockPanel: null,
-    dockOpen: false,
+    dockOpen: true,
   };
 }
 
@@ -125,6 +125,9 @@ function installGlobalApi(): void {
     },
     openDock(): void {
       setDockOpen(true);
+    },
+    setDockOpen(open: boolean): void {
+      setDockOpen(open);
     },
   };
 }

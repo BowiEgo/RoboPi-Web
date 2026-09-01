@@ -12,8 +12,7 @@ import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
 import { PluginSlot, pluginApiForDock } from "./PluginSlot";
-import { DockPanel, DOCK_DEFAULT_HEIGHT, DOCK_MAX_HEIGHT, DOCK_MIN_HEIGHT } from "./DockPanel";
-import { setDockOpen, useDockOpen, useDockPanelRenderer } from "@/lib/plugin-client";
+import { useDockOpen, useDockPanelRenderer } from "@/lib/plugin-client";
 import { SystemPromptPanel } from "./SystemPromptPanel";
 import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
 import { AgentSessionPanel } from "./AgentSessionPanel";
@@ -142,17 +141,8 @@ export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   // Dock panel state (worktable window below the file browser): height, persisted
-  const [dockHeight, setDockHeight] = useState<number>(() => {
-    if (typeof window === "undefined") return DOCK_DEFAULT_HEIGHT;
-    const stored = Number(window.localStorage.getItem("robopi-dock-height"));
-    return Number.isFinite(stored) ? Math.min(DOCK_MAX_HEIGHT, Math.max(DOCK_MIN_HEIGHT, stored)) : DOCK_DEFAULT_HEIGHT;
-  });
   const dockRenderer = useDockPanelRenderer();
   const dockOpen = useDockOpen();
-  // Opening the dock (via a worktable item click) also reveals the file panel
-  useEffect(() => {
-    if (dockOpen) setRightPanelOpen(true);
-  }, [dockOpen]);
   const [mobileToolbarMoreOpen, setMobileToolbarMoreOpen] = useState(false);
   const [mobileSidebarReady, setMobileSidebarReady] = useState(false);
   const sidebarWidthRef = useRef(SIDEBAR_DEFAULT_WIDTH);
@@ -1855,8 +1845,14 @@ export function AppShell() {
         />
       )}
 
-      {/* Center: chat */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+      {/* Center: dock panel (plugin-owned UI) + chat */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden", minWidth: 0 }}>
+        {dockOpen && dockRenderer && (
+          <div style={{ flexShrink: 0, height: "100%", display: "flex", overflow: "hidden" }}>
+            {dockRenderer(pluginApiForDock)}
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
@@ -2442,18 +2438,7 @@ export function AppShell() {
             </div>
           )}
         </div>
-
-        {/* Dock panel (worktable window) below the file browser */}
-        {dockOpen && dockRenderer && (
-          <DockPanel
-            height={dockHeight}
-            title="🧩 工作台"
-            onHeightChange={setDockHeight}
-            onClose={() => setDockOpen(false)}
-          >
-            {dockRenderer(pluginApiForDock)}
-          </DockPanel>
-        )}
+      </div>
       </div>
     </div>
     {settingsSection && (

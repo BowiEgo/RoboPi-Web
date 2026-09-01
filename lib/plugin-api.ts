@@ -121,6 +121,8 @@ declare global {
       registerDockPanel(renderer: SlotRenderer): void;
       /** Open the dock panel */
       openDock(): void;
+      /** Set dock panel visibility (plugin-owned close button) */
+      setDockOpen(open: boolean): void;
     };
     React?: typeof import("react");
   }
