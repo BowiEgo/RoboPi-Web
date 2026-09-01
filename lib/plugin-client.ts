@@ -27,18 +27,39 @@ const POLL_INTERVAL_MS = 5_000;
 type Listener = () => void;
 const listeners = new Set<Listener>();
 
-const state: PluginRegistryState = {
-  slots: {
-    navrail: new Map(),
-    "sidebar-bottom": new Map(),
-    "tabbar-right": new Map(),
-    "chat-toolbar": new Map(),
-    "settings-section": new Map(),
-  },
-  components: new Map(),
-  messageRenderers: new Map(),
-  worktableItems: new Map(),
-};
+function createEmptyState(): PluginRegistryState {
+  return {
+    slots: {
+      navrail: new Map(),
+      "sidebar-bottom": new Map(),
+      "tabbar-right": new Map(),
+      "chat-toolbar": new Map(),
+      "settings-section": new Map(),
+    },
+    components: new Map(),
+    messageRenderers: new Map(),
+    worktableItems: new Map(),
+  };
+}
+
+let state: PluginRegistryState = createEmptyState();
+
+/**
+ * Apply an immutable update: replace the affected maps with fresh instances so
+ * useSyncExternalStore sees a new snapshot reference and re-renders subscribers.
+ * (Mutating maps in place keeps the same reference and silently skips re-render.)
+ */
+function updateState(mutator: (next: PluginRegistryState) => void): void {
+  const next: PluginRegistryState = {
+    slots: { ...state.slots },
+    components: new Map(state.components),
+    messageRenderers: new Map(state.messageRenderers),
+    worktableItems: new Map(state.worktableItems),
+  };
+  mutator(next);
+  state = next;
+  emit();
+}
 
 let loadedEntries = new Map<string, number>(); // name -> versionStamp
 let polling = false;
@@ -70,20 +91,28 @@ function installGlobalApi(): void {
   window.React = React;
   window.robopi = {
     registerSlot(slot: PluginSlotName, renderer: SlotRenderer): void {
-      state.slots[slot].set(rendererKey(), renderer);
-      emit();
+      const key = rendererKey();
+      updateState((next) => {
+        const slots = { ...next.slots };
+        slots[slot] = new Map(next.slots[slot]);
+        slots[slot].set(key, renderer);
+        next.slots = slots;
+      });
     },
     registerComponent(name: OverridableComponentName, factory: ComponentFactory): void {
-      state.components.set(name, factory);
-      emit();
+      updateState((next) => {
+        next.components = new Map(next.components).set(name, factory);
+      });
     },
     registerMessageRenderer(customType: string, renderer: MessageRenderer): void {
-      state.messageRenderers.set(customType, renderer);
-      emit();
+      updateState((next) => {
+        next.messageRenderers = new Map(next.messageRenderers).set(customType, renderer);
+      });
     },
     registerWorktableItem(item: WorktableItem): void {
-      state.worktableItems.set(item.id, item);
-      emit();
+      updateState((next) => {
+        next.worktableItems = new Map(next.worktableItems).set(item.id, item);
+      });
     },
   };
 }
