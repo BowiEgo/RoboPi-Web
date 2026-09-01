@@ -69,9 +69,10 @@ try {
   check("level-1 slot: sidebar-bottom mounted", sidebarText.length > 0);
   check("demo-plugin panel rendered", sidebarText.includes("demo-plugin"));
 
-  // Worktable dock panel: renders beside the chat column, default visible
+  // Worktable dock panel: renders inside the chat area, default visible
   check("worktable dock rendered (default visible)", dockInfo.exists);
-  check("worktable items (overview/wiki/office)", ["概览", "Wiki 知识库", "办公助手"].every((t) => sidebarText.includes(t)));
+  check("sidebar lists Control Room", sidebarText.includes("控制室"));
+  check("dock control-room welcome + grid", dockInfo.text.includes("欢迎使用 RoboPi 工作台") && dockInfo.text.includes("即将推出"));
 
   // Level-2: component override mechanism (register a probe override directly,
   // independent of demo-plugin's own (currently disabled) override sample)
