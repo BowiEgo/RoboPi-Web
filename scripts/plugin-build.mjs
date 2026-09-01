@@ -1,56 +1,62 @@
 #!/usr/bin/env node
 /**
- * plugin-build.mjs —— 宿主构建 TSX 插件（免插件 package.json，支持 monorepo）。
+ * plugin-build.mjs - Build or watch TSX plugins using the host esbuild
+ * (no plugin-local package.json / node_modules required).
  *
- * 用法：
- *   node scripts/plugin-build.mjs build <name|path>   构建单个插件
- *   node scripts/plugin-build.mjs watch <name|path>    watch 单个插件（后台安全）
- *   node scripts/plugin-build.mjs build --all         构建全部插件
- *   node scripts/plugin-build.mjs watch --all          watch 全部插件
+ * Usage:
+ *   node scripts/plugin-build.mjs build <name|path|--all>
+ *   node scripts/plugin-build.mjs watch <name|path|--all>
  *
- * npm 便捷脚本：
- *   npm run plugin:build -- workspace      # 构建 plugins-dev/workspace
- *   npm run plugin:watch -- workspace      # watch（改 src 自动编译，浏览器 5 秒热更）
- *   npm run plugin:watch-all               # watch 全部插件
+ * npm shortcuts:
+ *   npm run plugin:build -- workspace
+ *   npm run plugin:watch -- workspace
+ *   npm run plugin:watch-all
  *
- * 约定：
- * - 插件目录：plugins-dev/<name>/（或显式路径）
- * - 入口 src/index.tsx → 产物 dist/index.js（发布时随仓库提交）
- * - JSX 配置：esbuild 自动读插件 tsconfig.json；无 tsconfig 默认 window.React.createElement
- * - 不 bundle React（宿主注入 window.React）
+ * Conventions:
+ * - Plugin dirs live under plugins-dev/ (flat or nested monorepo layouts)
+ * - Entry: <dir>/src/index.tsx -> output: <dir>/dist/index.js (committed on release)
+ * - JSX config is read from the plugin tsconfig.json; without one it defaults
+ *   to window.React.createElement (the React instance injected by the host)
+ * - React is never bundled: the jsxFactory points at window.React
  */
+
 import { build, context } from "esbuild";
 import { existsSync, readdirSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fail, parseFlags, warn } from "./lib/utils.mjs";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const DEV_DIR = join(ROOT, "plugins-dev");
 
-const [mode, target] = process.argv.slice(2);
-if (!["build", "watch"].includes(mode ?? "") || !target) {
-  console.error("用法：node scripts/plugin-build.mjs <build|watch> <name|path|--all>");
-  process.exit(1);
+const VALUE_FLAGS = []; // --all is a boolean flag
+const [, , mode, ...rest] = process.argv;
+const { flags, positionals } = parseFlags(rest, VALUE_FLAGS);
+
+if (!["build", "watch"].includes(mode ?? "")) {
+  fail("usage: plugin-build.mjs <build|watch> <name|path|--all>");
+}
+if (flags.all !== true && !positionals[0]) {
+  fail("usage: plugin-build.mjs <build|watch> <name|path|--all> (missing target)");
 }
 
+/** Resolve a plugin directory from a name or path (flat / nested / prefixed). */
 function resolvePluginDir(nameOrPath) {
   if (nameOrPath.startsWith(".") || nameOrPath.startsWith("/")) {
     return resolve(nameOrPath);
   }
-  // 支持扁平（workspace）、嵌套（robopi-plugins/plugins/worktable）、
-  // 带前缀（plugins-dev/xxx）三种形式
   const candidates = [
     join(DEV_DIR, nameOrPath.replace(/^plugins-dev\//, "")),
     resolve(ROOT, nameOrPath),
   ];
-  for (const c of candidates) {
-    if (existsSync(c)) return c;
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
   }
   return candidates[0];
 }
 
-function listPluginDirs() {
-  // 递归发现（monorepo 嵌套）：任意层级含 src/index.tsx 的目录即插件
+/** Recursively discover plugin dirs (any depth) containing src/index.tsx. */
+function discoverPluginDirs() {
   const found = [];
   const walk = (dir) => {
     let entries;
@@ -59,13 +65,12 @@ function listPluginDirs() {
     } catch {
       return;
     }
-    for (const e of entries) {
-      if (e.name === ".git" || e.name === "node_modules" || e.name === "dist") continue;
-      const full = join(dir, e.name);
-      if (e.isDirectory()) {
-        if (existsSync(join(full, "src", "index.tsx"))) found.push(full);
-        else walk(full);
-      }
+    for (const entry of entries) {
+      if (["node_modules", "dist", ".git"].includes(entry.name)) continue;
+      const full = join(dir, entry.name);
+      if (!entry.isDirectory()) continue;
+      if (existsSync(join(full, "src", "index.tsx"))) found.push(full);
+      else walk(full);
     }
   };
   walk(DEV_DIR);
@@ -73,27 +78,28 @@ function listPluginDirs() {
 }
 
 const targets =
-  target === "--all"
-    ? listPluginDirs()
-    : [resolvePluginDir(target)];
+  flags.all === true
+    ? discoverPluginDirs()
+    : [resolvePluginDir(positionals[0] ?? "")];
 
 const contexts = [];
 
 for (const pluginDir of targets) {
   const entryPoint = join(pluginDir, "src", "index.tsx");
   if (!existsSync(entryPoint)) {
-    console.warn(`⏭ 跳过（无 src/index.tsx）：${pluginDir}`);
+    warn(`skipping (no src/index.tsx): ${pluginDir}`);
     continue;
   }
 
-  const tsconfig = join(pluginDir, "tsconfig.json");
+  const hasTsconfig = existsSync(join(pluginDir, "tsconfig.json"));
   const options = {
     entryPoints: [entryPoint],
     bundle: true,
     format: "iife",
     outfile: join(pluginDir, "dist", "index.js"),
-    // tsconfig 存在时 esbuild 自动读 jsx/jsxFactory；否则用宿主默认
-    ...(existsSync(tsconfig)
+    // esbuild reads jsx/jsxFactory from the plugin tsconfig when present;
+    // otherwise default to the React instance injected by the host.
+    ...(hasTsconfig
       ? {}
       : { jsxFactory: "window.React.createElement", jsxFragment: "window.React.Fragment" }),
     logLevel: "info",
@@ -101,29 +107,30 @@ for (const pluginDir of targets) {
 
   if (mode === "build") {
     await build(options);
-    console.log(`✅ 构建完成：${options.outfile}`);
+    console.log(`✅ built: ${options.outfile}`);
   } else {
     const ctx = await context(options);
     await ctx.watch();
     contexts.push(ctx);
-    console.log(`👁 watch 中：${entryPoint} → ${options.outfile}`);
+    console.log(`👁 watching: ${entryPoint} -> ${options.outfile}`);
   }
 }
 
 if (mode === "watch") {
-  if (contexts.length === 0) {
-    console.log("（plugins-dev 下未发现 TSX 插件，watch 保持待命…）");
-    // 保持进程存活，避免 concurrently -k 误杀 web；Ctrl+C 退出
-    const idle = setInterval(() => {}, 60_000);
-    process.on("SIGINT", () => { clearInterval(idle); process.exit(0); });
-    process.on("SIGTERM", () => { clearInterval(idle); process.exit(0); });
-  } else {
-    console.log(`\n共 ${contexts.length} 个插件在 watch（Ctrl+C 停止）`);
-  }
   const shutdown = () => {
     for (const ctx of contexts) ctx.dispose();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+
+  if (contexts.length === 0) {
+    console.log("(no TSX plugins found under plugins-dev; watch standing by)");
+    // Keep the process alive so `concurrently -k` does not kill the web server
+    const idle = setInterval(() => {}, 60_000);
+    process.on("SIGINT", () => { clearInterval(idle); process.exit(0); });
+    process.on("SIGTERM", () => { clearInterval(idle); process.exit(0); });
+  } else {
+    console.log(`\n${contexts.length} plugin(s) being watched (Ctrl+C to stop)`);
+  }
 }

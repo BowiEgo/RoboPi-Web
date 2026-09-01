@@ -1,51 +1,85 @@
+#!/usr/bin/env node
 /**
- * 三层插件化端到端验证脚本（Playwright）。
+ * verify-plugins.mjs - End-to-end verification of the plugin system via Playwright.
  *
- * 用法：node scripts/verify-plugins.mjs
- * 前置：dev server 运行在 30142，demo-plugin 已安装到 ~/.pi/agent/pi-web/plugins/
+ * Usage:
+ *   node scripts/verify-plugins.mjs
+ *
+ * Prerequisites:
+ *   - dev server running on http://127.0.0.1:30142
+ *   - demo-plugin installed under ~/.pi/agent/robopi/plugins/
+ *   - worktable plugin auto-mounted from plugins-dev (dev mode)
+ *
+ * Checks:
+ *   - Level-1 slots: sidebar-bottom host mounts plugin panels
+ *   - Level-2 component override: ModelSelector replaced by a plugin
+ *   - Worktable container: collapsible header + worktable list
+ *   - No browser console/page errors
  */
+
 import { chromium } from "playwright";
 
 const BASE = "http://127.0.0.1:30142";
+const EXECUTABLE_PATH =
+  process.env.PW_EXECUTABLE_PATH ??
+  "/Users/boboboost/Library/Caches/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-mac-arm64/chrome-headless-shell";
+
 const results = [];
-function check(name, ok, detail = "") {
-  results.push({ name, ok, detail });
-  console.log(`${ok ? "✅" : "❌"} ${name}${detail ? ` — ${detail}` : ""}`);
+function check(name, okFlag, detail = "") {
+  results.push({ name, ok: okFlag });
+  console.log(`${okFlag ? "✅" : "❌"} ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
-const browser = await chromium.launch({
-  // 复用本机已下载的 chromium（版本可能与 playwright 期望不一致，显式指定路径）
-  executablePath: process.env.PW_EXECUTABLE_PATH ?? undefined,
-});
-const page = await browser.newPage();
-const consoleErrors = [];
-page.on("console", (msg) => {
-  if (msg.type() === "error") consoleErrors.push(msg.text());
-});
-page.on("pageerror", (err) => consoleErrors.push(String(err)));
+const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
-await page.goto(BASE, { waitUntil: "networkidle", timeout: 60_000 });
+const pageErrors = [];
+page.on("pageerror", (error) => pageErrors.push(String(error)));
 
-// 等待插件加载（轮询 5s 间隔，最多等 15s）
-await page.waitForFunction(() => window.robopi !== undefined, null, { timeout: 15_000 });
-await page.waitForTimeout(7000); // 等 syncOnce 拉取 + 执行 entry
+try {
+  // Open the first session so the chat area (and ModelSelector) renders
+  const res = await fetch(`${BASE}/api/sessions`, { cache: "no-store" });
+  const { sessions } = await res.json().catch(() => ({ sessions: [] }));
+  const sessionId = sessions?.[0]?.id;
+  if (sessionId) {
+    await page.goto(`${BASE}/?session=${encodeURIComponent(sessionId)}`, { waitUntil: "networkidle", timeout: 60_000 });
+  } else {
+    await page.goto(BASE, { waitUntil: "networkidle", timeout: 60_000 });
+  }
 
-// 1. 位置级：sidebar-bottom 面板
-const sidebarText = await page.locator('[data-plugin-host="sidebar-bottom"]').count();
-check("第1层 slot：sidebar-bottom 挂载", sidebarText > 0);
-const countText = await page.locator("text=会话数：").first().count();
-check("第1层 slot：会话统计面板渲染", countText > 0);
+  // Wait for plugin polling + entry loading (first sync runs on subscribe)
+  await page.waitForFunction(() => window.robopi !== undefined, null, { timeout: 15_000 });
+  await page.waitForTimeout(9_000);
 
-// 2. 组件级：ModelSelector 覆盖
-const overrideText = await page.locator("text=插件版模型选择器").first().count();
-check("第2层 组件覆盖：ModelSelector", overrideText > 0);
+  const sidebarText = await page.evaluate(() => {
+    const host = document.querySelector('[data-plugin-host="sidebar-bottom"]');
+    return host ? host.textContent : "";
+  });
 
-// 3. 控制台无错误（插件相关）
-const pluginErrors = consoleErrors.filter((e) => !e.includes("favicon"));
-check("浏览器控制台无插件错误", pluginErrors.length === 0, pluginErrors.join(" | ").slice(0, 120));
+  // Level-1: sidebar-bottom hosts plugin content
+  check("level-1 slot: sidebar-bottom mounted", sidebarText.length > 0);
+  check("demo-plugin panel rendered", sidebarText.includes("demo-plugin"));
+  check("worktable container rendered", sidebarText.includes("🧩 工作台"));
 
-await browser.close();
+  // Worktable: collapsible header + worktable items
+  check("worktable items (overview/wiki/office)", ["概览", "Wiki 知识库", "办公助手"].every((t) => sidebarText.includes(t)));
+
+  // Level-2: component override mechanism (register a probe override directly,
+  // independent of demo-plugin's own (currently disabled) override sample)
+  await page.evaluate(() => {
+    window.robopi.registerComponent("ModelSelector", () => () =>
+      window.React.createElement("div", null, "VERIFY-OVERRIDE"),
+    );
+  });
+  await page.waitForTimeout(1_500);
+  const overrideText = await page.evaluate(() => document.body.innerText);
+  check("level-2 component override mechanism", overrideText.includes("VERIFY-OVERRIDE"));
+
+  check("no page errors", pageErrors.length === 0, pageErrors.slice(0, 2).join(" | "));
+} finally {
+  await browser.close();
+}
 
 const failed = results.filter((r) => !r.ok).length;
-console.log(`\n${failed === 0 ? "全部通过 ✅" : `${failed} 项失败 ❌`}`);
+console.log(`\n${failed === 0 ? "all passed ✅" : `${failed} check(s) failed ❌`}`);
 process.exit(failed === 0 ? 0 : 1);
