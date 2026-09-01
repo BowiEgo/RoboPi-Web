@@ -10,6 +10,7 @@ import type {
   PluginRegistryState,
   PluginSlotName,
   SlotRenderer,
+  WorktableItem,
 } from "@/lib/plugin-api";
 
 /**
@@ -36,6 +37,7 @@ const state: PluginRegistryState = {
   },
   components: new Map(),
   messageRenderers: new Map(),
+  worktableItems: new Map(),
 };
 
 let loadedEntries = new Map<string, number>(); // name -> versionStamp
@@ -77,6 +79,10 @@ function installGlobalApi(): void {
     },
     registerMessageRenderer(customType: string, renderer: MessageRenderer): void {
       state.messageRenderers.set(customType, renderer);
+      emit();
+    },
+    registerWorktableItem(item: WorktableItem): void {
+      state.worktableItems.set(item.id, item);
       emit();
     },
   };
@@ -168,6 +174,11 @@ export function useMessageRenderer(customType: string): MessageRenderer | undefi
 /** 所有已注册消息渲染器的 customType 集合（MessageView 据此分发） */
 export function getRegisteredMessageTypes(): Set<string> {
   return new Set(state.messageRenderers.keys());
+}
+
+/** 工作台项注册表快照（worktable 容器插件经 api.getWorktableItems() 读取） */
+export function getWorktableItems(): WorktableItem[] {
+  return [...state.worktableItems.values()];
 }
 
 // 保证在客户端模块加载时安装全局 API

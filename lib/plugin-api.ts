@@ -46,6 +46,18 @@ export type MessageRenderer = (
   api: PluginApi,
 ) => React.ReactNode;
 
+/** 工作台项（worktable 插件渲染的列表项；其他插件注册后即可出现在工作台） */
+export interface WorktableItem {
+  /** 唯一 id（其他插件注册同名 id 可覆盖内置占位项） */
+  id: string;
+  label: string;
+  /** emoji 或短图标 */
+  icon?: string;
+  description?: string;
+  /** 渲染组件；缺省时列表项点击显示占位（等待插件实现） */
+  component?: ComponentType<{ api: PluginApi }>;
+}
+
 /** 插件获取宿主能力的 API 桥（fetch 现有路由的封装） */
 export interface PluginApi {
   /** 读取宿主信息（版本/插件列表） */
@@ -54,6 +66,8 @@ export interface PluginApi {
   listSessions(): Promise<unknown>;
   /** 打开会话/文件等动作（占位，后续按需扩展） */
   openSession(sessionId: string): void;
+  /** 工作台项注册表（worktable 等容器插件读取） */
+  getWorktableItems(): WorktableItem[];
 }
 
 /** 浏览器全局注册表内容 */
@@ -61,6 +75,7 @@ export interface PluginRegistryState {
   slots: Record<PluginSlotName, Map<string, SlotRenderer>>;
   components: Map<OverridableComponentName, ComponentFactory>;
   messageRenderers: Map<string, MessageRenderer>;
+  worktableItems: Map<string, WorktableItem>;
 }
 
 /** manifest.json 结构 */
@@ -95,6 +110,7 @@ declare global {
       registerSlot(slot: PluginSlotName, renderer: SlotRenderer): void;
       registerComponent(name: OverridableComponentName, factory: ComponentFactory): void;
       registerMessageRenderer(customType: string, renderer: MessageRenderer): void;
+      registerWorktableItem(item: WorktableItem): void;
     };
     React?: typeof import("react");
   }

@@ -37,7 +37,16 @@ function resolvePluginDir(nameOrPath) {
   if (nameOrPath.startsWith(".") || nameOrPath.startsWith("/")) {
     return resolve(nameOrPath);
   }
-  return join(DEV_DIR, nameOrPath);
+  // 支持扁平（workspace）、嵌套（robopi-plugins/plugins/worktable）、
+  // 带前缀（plugins-dev/xxx）三种形式
+  const candidates = [
+    join(DEV_DIR, nameOrPath.replace(/^plugins-dev\//, "")),
+    resolve(ROOT, nameOrPath),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0];
 }
 
 function listPluginDirs() {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { useSlot } from "@/lib/plugin-client";
+import { getWorktableItems, useSlot } from "@/lib/plugin-client";
 import type { PluginApi, PluginSlotName } from "@/lib/plugin-api";
 
 /**
@@ -17,6 +17,7 @@ const pluginApi: PluginApi = {
     // 地基版本：跳转到带 session 参数的首页（AppShell 读取 URL 状态）
     window.location.assign(`/?session=${encodeURIComponent(sessionId)}`);
   },
+  getWorktableItems: () => getWorktableItems(),
 };
 
 export function PluginSlot({ name }: { name: PluginSlotName }) {

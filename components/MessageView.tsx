@@ -5,7 +5,7 @@ import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
 import { copyText } from "@/lib/clipboard";
 import { useI18n } from "@/hooks/useI18n";
-import { useMessageRenderer } from "@/lib/plugin-client";
+import { getWorktableItems, useMessageRenderer } from "@/lib/plugin-client";
 import type { PluginApi } from "@/lib/plugin-api";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
 import { getAssistantErrorMessage, isEmptyThinkingBlock } from "@/lib/message-display";
@@ -1386,6 +1386,7 @@ const messagePluginApi: PluginApi = {
   openSession: (sessionId: string) => {
     window.location.assign(`/?session=${encodeURIComponent(sessionId)}`);
   },
+  getWorktableItems: () => getWorktableItems(),
 };
 
 /**
