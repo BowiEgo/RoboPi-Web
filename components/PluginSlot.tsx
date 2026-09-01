@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { getWorktableItems, setDockOpen, setDockSide, useSlot } from "@/lib/plugin-client";
+import { getDockSide, getWorktableItems, setDockOpen, setDockSide, useSlot } from "@/lib/plugin-client";
 import type { PluginApi, PluginSlotName } from "@/lib/plugin-api";
 
 /**
@@ -20,6 +20,7 @@ const pluginApi: PluginApi = {
   getWorktableItems: () => getWorktableItems(),
   openDock: () => setDockOpen(true),
   setDockSide: (side) => setDockSide(side),
+  getDockSide: () => getDockSide(),
 };
 
 export { pluginApi as pluginApiForDock };

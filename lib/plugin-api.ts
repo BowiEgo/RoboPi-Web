@@ -75,6 +75,8 @@ export interface PluginApi {
   openDock(): void;
   /** Dock the panel to a side of the chat area (VSCode-style) */
   setDockSide(side: DockSide): void;
+  /** Current docking side of the panel */
+  getDockSide(): DockSide;
 }
 
 /** 浏览器全局注册表内容 */
@@ -124,6 +126,7 @@ declare global {
       registerComponent(name: OverridableComponentName, factory: ComponentFactory): void;
       registerMessageRenderer(customType: string, renderer: MessageRenderer): void;
       registerWorktableItem(item: WorktableItem): void;
+      getWorktableItems(): WorktableItem[];
       /** Register the dock panel content (rendered below the file browser) */
       registerDockPanel(renderer: SlotRenderer): void;
       /** Open the dock panel */
@@ -132,6 +135,8 @@ declare global {
       setDockOpen(open: boolean): void;
       /** Dock the panel to a side of the chat area (VSCode-style) */
       setDockSide(side: DockSide): void;
+      /** Current docking side of the panel */
+      getDockSide(): DockSide;
     };
     React?: typeof import("react");
   }

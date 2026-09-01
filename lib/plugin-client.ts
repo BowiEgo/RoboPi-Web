@@ -121,6 +121,9 @@ function installGlobalApi(): void {
         next.worktableItems = new Map(next.worktableItems).set(item.id, item);
       });
     },
+    getWorktableItems(): WorktableItem[] {
+      return [...state.worktableItems.values()];
+    },
     registerDockPanel(renderer: SlotRenderer): void {
       updateState((next) => {
         next.dockPanel = renderer;
@@ -135,6 +138,9 @@ function installGlobalApi(): void {
     setDockSide(side: DockSide): void {
       setDockSide(side);
     },
+    getDockSide(): DockSide {
+      return state.dockSide;
+    },
   };
 }
 
@@ -148,6 +154,11 @@ export function setDockSide(side: DockSide): void {
 /** Dock panel side relative to the chat area. */
 export function useDockSide(): DockSide {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot).dockSide;
+}
+
+/** Current dock panel side (sync read for plugins). */
+export function getDockSide(): DockSide {
+  return state.dockSide;
 }
 
 /** Open/close the dock panel (host AppShell and plugins share this state). */
