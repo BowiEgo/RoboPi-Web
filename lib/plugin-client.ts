@@ -40,6 +40,7 @@ function createEmptyState(): PluginRegistryState {
     messageRenderers: new Map(),
     worktableItems: new Map(),
     dockPanel: null,
+    dockOpen: false,
   };
 }
 
@@ -57,6 +58,7 @@ function updateState(mutator: (next: PluginRegistryState) => void): void {
     messageRenderers: new Map(state.messageRenderers),
     worktableItems: new Map(state.worktableItems),
     dockPanel: state.dockPanel,
+    dockOpen: state.dockOpen,
   };
   mutator(next);
   state = next;
@@ -121,7 +123,22 @@ function installGlobalApi(): void {
         next.dockPanel = renderer;
       });
     },
+    openDock(): void {
+      setDockOpen(true);
+    },
   };
+}
+
+/** Open/close the dock panel (host AppShell and plugins share this state). */
+export function setDockOpen(open: boolean): void {
+  updateState((next) => {
+    next.dockOpen = open;
+  });
+}
+
+/** Dock panel visibility. */
+export function useDockOpen(): boolean {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot).dockOpen;
 }
 
 // 每个 entry 内多次注册用自增 key 区分（渲染器/组件按名字唯一即可）

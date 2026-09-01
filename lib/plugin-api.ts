@@ -68,6 +68,8 @@ export interface PluginApi {
   openSession(sessionId: string): void;
   /** 工作台项注册表（worktable 等容器插件读取） */
   getWorktableItems(): WorktableItem[];
+  /** Open the dock panel (rendered below the file browser) */
+  openDock(): void;
 }
 
 /** 浏览器全局注册表内容 */
@@ -78,6 +80,8 @@ export interface PluginRegistryState {
   worktableItems: Map<string, WorktableItem>;
   /** Dock panel content (single renderer; later registrations replace) */
   dockPanel: SlotRenderer | null;
+  /** Dock panel visibility (opened by plugins, closed via the panel's × button) */
+  dockOpen: boolean;
 }
 
 /** manifest.json 结构 */
@@ -113,8 +117,10 @@ declare global {
       registerComponent(name: OverridableComponentName, factory: ComponentFactory): void;
       registerMessageRenderer(customType: string, renderer: MessageRenderer): void;
       registerWorktableItem(item: WorktableItem): void;
-      /** Register the dock panel content (rendered beside the chat column) */
+      /** Register the dock panel content (rendered below the file browser) */
       registerDockPanel(renderer: SlotRenderer): void;
+      /** Open the dock panel */
+      openDock(): void;
     };
     React?: typeof import("react");
   }

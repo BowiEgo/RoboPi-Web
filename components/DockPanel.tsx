@@ -3,115 +3,53 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * DockPanel - a dockable side window rendered beside the chat column
- * (VSCode-style docking).
- *
- * Features:
- * - Sits on the left or right of the chat column (default left)
- * - Width is adjustable by dragging the edge handle
- * - Dragging the title bar shows a drop hint (left/right highlight),
- *   releasing docks the panel to that side
- *
- * The content is provided by plugins via window.robopi.registerDockPanel();
- * the host only owns the chrome (position, width, drag interactions).
+ * DockPanel - a dockable window rendered below the file browser in the right
+ * panel (vertical split). The host owns the chrome: title bar with close
+ * button, and a vertical resize handle. Content is provided by plugins via
+ * window.robopi.registerDockPanel().
  */
 
-export type DockSide = "left" | "right";
-
-export const DOCK_MIN_WIDTH = 240;
-export const DOCK_MAX_WIDTH = 600;
-export const DOCK_DEFAULT_WIDTH = 320;
-const DOCK_WIDTH_STORAGE_KEY = "robopi-dock-width";
-
-interface DropZoneProps {
-  side: DockSide;
-  hint: DockSide | null;
-  active: boolean;
-}
-
-/** Half-screen drop indicator shown while dragging the title bar. */
-function DropZone({ side, hint, active }: DropZoneProps) {
-  const highlighted = active && hint === side;
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        bottom: 0,
-        width: "50%",
-        left: side === "left" ? 0 : "50%",
-        pointerEvents: "none",
-        background: highlighted ? "color-mix(in srgb, var(--accent) 14%, transparent)" : "transparent",
-        borderLeft: highlighted && side === "right" ? "3px solid var(--accent)" : "none",
-        borderRight: highlighted && side === "left" ? "3px solid var(--accent)" : "none",
-        transition: "background 0.1s ease",
-      }}
-    />
-  );
-}
+export const DOCK_MIN_HEIGHT = 160;
+export const DOCK_MAX_HEIGHT = 640;
+export const DOCK_DEFAULT_HEIGHT = 280;
+const DOCK_HEIGHT_STORAGE_KEY = "robopi-dock-height";
 
 export function DockPanel({
-  side,
-  width,
+  height,
   title,
-  onWidthChange,
-  onSideChange,
+  onHeightChange,
   onClose,
   children,
 }: {
-  side: DockSide;
-  width: number;
+  height: number;
   title: string;
-  onWidthChange: (width: number) => void;
-  onSideChange: (side: DockSide) => void;
+  onHeightChange: (height: number) => void;
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  const [dragHint, setDragHint] = useState<DockSide | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
-  const widthRef = useRef(width);
-  widthRef.current = width;
+  const heightRef = useRef(height);
+  heightRef.current = height;
 
-  // Persist the width across reloads
+  // Persist the height across reloads
   useEffect(() => {
     try {
-      window.localStorage.setItem(DOCK_WIDTH_STORAGE_KEY, String(width));
+      window.localStorage.setItem(DOCK_HEIGHT_STORAGE_KEY, String(height));
     } catch {
       /* ignore storage errors */
     }
-  }, [width]);
+  }, [height]);
 
-  /** Title-bar drag: track the pointer, show a drop hint, dock on release. */
-  const startHeaderDrag = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setDragging(true);
-
-    const move = (ev: MouseEvent) => {
-      setDragHint(ev.clientX < window.innerWidth / 2 ? "left" : "right");
-    };
-    const up = (ev: MouseEvent) => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-      setDragging(false);
-      setDragHint(null);
-      const hint: DockSide = ev.clientX < window.innerWidth / 2 ? "left" : "right";
-      if (hint !== side) onSideChange(hint);
-    };
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
-  }, [side, onSideChange]);
-
-  /** Edge handle drag: resize the panel width. */
+  /** Top-edge handle drag: resize the panel height. */
   const startResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setResizing(true);
-    const startX = e.clientX;
-    const startWidth = widthRef.current;
+    const startY = e.clientY;
+    const startHeight = heightRef.current;
 
     const move = (ev: MouseEvent) => {
-      const delta = side === "left" ? ev.clientX - startX : startX - ev.clientX;
-      onWidthChange(Math.min(DOCK_MAX_WIDTH, Math.max(DOCK_MIN_WIDTH, startWidth + delta)));
+      const delta = startY - ev.clientY; // dragging up grows the panel
+      onHeightChange(Math.min(DOCK_MAX_HEIGHT, Math.max(DOCK_MIN_HEIGHT, startHeight + delta)));
     };
     const up = () => {
       window.removeEventListener("mousemove", move);
@@ -120,99 +58,73 @@ export function DockPanel({
     };
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
-  }, [side, onWidthChange]);
+  }, [onHeightChange]);
 
   return (
-    <>
-      <div
-        role="complementary"
-        aria-label={title}
-        style={{
-          width,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-          overflow: "hidden",
-          background: "var(--bg-panel)",
-          borderRight: side === "left" ? "1px solid var(--border)" : "none",
-          borderLeft: side === "right" ? "1px solid var(--border)" : "none",
-        }}
-      >
-        {/* Title bar: drag to re-dock */}
-        <div
-          onMouseDown={startHeaderDrag}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            height: 32,
-            padding: "0 10px",
-            flexShrink: 0,
-            borderBottom: "1px solid var(--border)",
-            background: "var(--bg-panel)",
-            cursor: dragging ? "grabbing" : "grab",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--text)",
-            userSelect: "none",
-          }}
-          title="拖拽标题栏切换左右停靠"
-        >
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-            {title}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="关闭工作台"
-            title="关闭工作台"
-            style={{
-              border: "none", background: "none", cursor: "pointer", color: "var(--text-dim)",
-              fontSize: 14, padding: "2px 6px", borderRadius: 4,
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Plugin-provided content */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{children}</div>
-      </div>
-
-      {/* Edge resize handle */}
+    <div
+      role="complementary"
+      aria-label={title}
+      style={{
+        height,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        overflow: "hidden",
+        borderTop: "1px solid var(--border)",
+        background: "var(--bg-panel)",
+      }}
+    >
+      {/* Vertical resize handle (top edge) */}
       <div
         onMouseDown={startResize}
         role="separator"
-        aria-orientation="vertical"
+        aria-orientation="horizontal"
+        title="拖拽调整工作台高度"
         style={{
-          width: 4,
+          height: 4,
           flexShrink: 0,
-          cursor: "col-resize",
+          cursor: "row-resize",
           background: resizing ? "var(--accent)" : "transparent",
           transition: "background 0.1s ease",
         }}
       />
 
-      {/* Drop hint overlay while dragging the title bar */}
-      {dragging && (
-        <div
+      {/* Title bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          height: 28,
+          padding: "0 10px",
+          flexShrink: 0,
+          borderBottom: "1px solid var(--border)",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--text)",
+          userSelect: "none",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {title}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="关闭工作台"
+          title="关闭工作台"
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            pointerEvents: "none",
-            display: "flex",
+            border: "none", background: "none", cursor: "pointer", color: "var(--text-dim)",
+            fontSize: 14, padding: "2px 6px", borderRadius: 4,
           }}
         >
-          <div style={{ flex: 1, position: "relative" }}>
-            <DropZone side="left" hint={dragHint} active />
-          </div>
-          <div style={{ flex: 1, position: "relative" }}>
-            <DropZone side="right" hint={dragHint} active />
-          </div>
-        </div>
-      )}
-    </>
+          ×
+        </button>
+      </div>
+
+      {/* Plugin-provided content */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{children}</div>
+    </div>
   );
 }
